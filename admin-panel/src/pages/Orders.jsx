@@ -254,20 +254,27 @@ const Orders = () => {
       </Container>
 
       {/* Order Details Modal */}
-      <Modal show={showDetails} onHide={() => setShowDetails(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Order #{selectedOrder?.id} Details</Modal.Title>
+      <Modal 
+        show={showDetails} 
+        onHide={() => setShowDetails(false)} 
+        size="lg" 
+        centered 
+        className="modal-with-sidebar"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold ps-2">Order #{selectedOrder?.id} Details</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="p-4">
           {selectedOrder && (
-            <>
-              <Row className="mb-3">
+            <div className="px-2">
+              <Row className="mb-4">
                 <Col md={6}>
-                  <h5>Status Update</h5>
+                  <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Status Update</h6>
                   <Form.Select 
                     value={selectedOrder.status} 
                     onChange={(e) => handleStatusUpdate(selectedOrder.id, e.target.value)}
                     disabled={updatingStatus}
+                    className="mb-3 shadow-sm border-secondary-subtle py-2"
                   >
                     <option value="pending">Pending</option>
                     <option value="processing">Processing</option>
@@ -277,58 +284,84 @@ const Orders = () => {
                   </Form.Select>
                 </Col>
                 <Col md={6}>
-                  <h5>Payment Info</h5>
-                  <p>Method: {selectedOrder.payment_method}</p>
-                  <p>Status: <Badge bg={selectedOrder.payment_status === 'paid' ? 'success' : 'warning'}>{selectedOrder.payment_status}</Badge></p>
-                  {selectedOrder.razorpay_payment_id && <p>Txn ID: {selectedOrder.razorpay_payment_id}</p>}
+                  <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Payment Info</h6>
+                  <div className="p-3 bg-light rounded-3 border border-light-subtle">
+                    <div className="d-flex justify-content-between mb-2">
+                        <span className="text-muted small">Method</span>
+                        <span className="fw-bold text-uppercase text-dark">{selectedOrder.payment_method}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <span className="text-muted small">Status</span>
+                        <Badge bg={selectedOrder.payment_status === 'paid' ? 'success' : 'warning'} className="px-3 py-2 rounded-pill">
+                            {selectedOrder.payment_status}
+                        </Badge>
+                    </div>
+                    {selectedOrder.razorpay_payment_id && (
+                        <div className="d-flex justify-content-between mt-3 pt-2 border-top">
+                            <span className="text-muted small">Transaction ID</span>
+                            <small className="font-monospace text-dark">{selectedOrder.razorpay_payment_id}</small>
+                        </div>
+                    )}
+                  </div>
                 </Col>
               </Row>
 
-              <hr />
+              <div className="border-top my-4"></div>
 
-              <h5>Shipping Address</h5>
-              <p className="bg-light p-2 rounded">{selectedOrder.shipping_address}</p>
+              <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Shipping Address</h6>
+              <div className="bg-light p-4 rounded-3 mb-4 border border-light-subtle">
+                <p className="mb-0 text-dark fw-medium">
+                  {selectedOrder.shipping_address}
+                </p>
+              </div>
+              
               {selectedOrder.notes && (
                  <>
-                   <h5>Notes</h5>
-                   <p className="bg-light p-2 rounded">{selectedOrder.notes}</p>
+                   <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Notes</h6>
+                   <div className="bg-light p-4 rounded-3 mb-4 border border-light-subtle">
+                      <p className="mb-0 text-dark">{selectedOrder.notes}</p>
+                   </div>
                  </>
               )}
 
-              <hr />
+              <div className="border-top my-4"></div>
 
-              <h5>Items</h5>
-              <Table size="sm">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedOrder.items?.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.product_name}</td>
-                      <td>₹{item.price}</td>
-                      <td>{item.quantity}</td>
-                      <td>₹{item.price * item.quantity}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colSpan="3" className="text-end fw-bold">Grand Total:</td>
-                        <td className="fw-bold">₹{selectedOrder.total_amount}</td>
-                    </tr>
-                </tfoot>
-              </Table>
-            </>
+              <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Order Items</h6>
+              <div className="table-responsive border rounded-3 overflow-hidden">
+                  <Table className="mb-0 align-middle">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="border-0 py-3 ps-4 text-secondary small fw-bold">Product</th>
+                        <th className="border-0 py-3 text-end text-secondary small fw-bold">Price</th>
+                        <th className="border-0 py-3 text-center text-secondary small fw-bold">Qty</th>
+                        <th className="border-0 py-3 pe-4 text-end text-secondary small fw-bold">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedOrder.items?.map((item) => (
+                        <tr key={item.id}>
+                          <td className="py-3 ps-4 border-bottom-0">
+                              <div className="fw-medium text-dark">{item.product_name}</div>
+                          </td>
+                          <td className="text-end py-3 border-bottom-0">₹{item.price}</td>
+                          <td className="text-center py-3 border-bottom-0">{item.quantity}</td>
+                          <td className="text-end fw-bold py-3 pe-4 border-bottom-0">₹{item.price * item.quantity}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-light">
+                        <tr>
+                            <td colSpan="3" className="text-end fw-bold py-3 border-0 text-secondary">Grand Total</td>
+                            <td className="text-end fw-bold fs-5 py-3 pe-4 border-0 text-primary">₹{selectedOrder.total_amount}</td>
+                        </tr>
+                    </tfoot>
+                  </Table>
+              </div>
+            </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetails(false)}>
+        <Modal.Footer className="border-0 pt-0 pb-4 pe-4">
+          <Button variant="secondary" onClick={() => setShowDetails(false)} className="px-4">
             Close
           </Button>
         </Modal.Footer>

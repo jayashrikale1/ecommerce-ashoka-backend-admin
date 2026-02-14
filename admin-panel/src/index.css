@@ -153,9 +153,10 @@ body {
   margin-bottom: 2rem !important; 
 }
 
-/* Modal Customization for Sidebar Offset */
-@media (min-width: 768px) {
-  .modal-with-sidebar {
-    padding-left: 280px !important;
-  }
+/* Modal Custom Styles */
+@media (min-width: 992px) {
+    .modal-with-sidebar .modal-dialog {
+        margin-left: 300px; /* Sidebar width (280px) + gap */
+        max-width: calc(100% - 320px); /* Adjust width to fit */
+    }
 }
