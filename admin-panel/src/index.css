@@ -1,0 +1,161 @@
+/* Reset or global styles if needed, but relying mostly on Bootstrap */
+body {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden; /* Prevent body scroll since we handle it in Layout */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(108, 117, 125, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(108, 117, 125, 0.5);
+}
+
+/* Layout Specific Styles - Explicitly defined for scrolling behavior */
+.layout-root {
+  display: flex;
+  height: 100vh; /* Force full viewport height */
+  width: 100vw;
+  overflow: hidden; /* No scroll on root */
+  background-color: #f8f9fa;
+}
+
+.sidebar-scroll-container {
+  width: 280px;
+  height: 100%;
+  overflow-y: auto; /* Independent scroll */
+  flex-shrink: 0;
+  display: none; /* Default hidden for mobile */
+}
+
+@media (min-width: 768px) {
+  .sidebar-scroll-container {
+    display: block; /* Show on desktop */
+  }
+}
+
+.main-content-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0; /* Crucial for nested flex scrolling */
+  overflow: hidden;
+}
+
+.content-scroll-area {
+  flex-grow: 1;
+  overflow-y: auto; /* Independent scroll */
+  height: 0; /* Hack to force flex child to scroll properly */
+  padding-bottom: 20px;
+}
+
+/* Sidebar Styles */
+.sidebar-wrapper {
+  background: linear-gradient(180deg, #1a1d20 0%, #212529 100%);
+  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  min-height: 100%; /* Ensure background covers full scroll height */
+}
+
+.nav-link-custom {
+  color: rgba(255, 255, 255, 0.75) !important;
+  padding: 12px 20px !important;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.nav-link-custom:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff !important;
+  transform: translateX(5px);
+}
+
+.nav-link-custom.active {
+  background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+}
+
+.logout-btn {
+  transition: all 0.3s ease;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #ff6b6b;
+  background: rgba(220, 53, 69, 0.05);
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 500;
+}
+
+.logout-btn:hover {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Header/Navbar Styles */
+.navbar-custom {
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+.user-profile-badge {
+  background: #fff;
+  padding: 8px 20px;
+  border-radius: 50px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
+}
+
+.user-profile-badge:hover {
+  background: #f8f9fa;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
+.avatar-circle {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Custom Utilities */
+.mb-5 { 
+  margin-bottom: 2rem !important; 
+}
+
+/* Modal Customization for Sidebar Offset */
+@media (min-width: 768px) {
+  .modal-with-sidebar {
+    padding-left: 280px !important;
+  }
+}

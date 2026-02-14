@@ -1,0 +1,573 @@
+import React, { useEffect, useState } from 'react';
+import Layout from '../components/Layout';
+import api from '../services/api';
+import { toast } from 'react-toastify';
+import { Plus, Edit, Trash2, X, Eye } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { Container, Card, Table, Button, Modal, Form, Row, Col, Image, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import PaginationComponent from '../components/PaginationComponent';
+
+const Products = () => {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState(null);
+  const [viewProductData, setViewProductData] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: {
+      status: true,
+      stock: 0,
+      sku: '',
+      name: '',
+      description: '',
+      customer_price: '',
+      wholesaler_price: '',
+      category_id: ''
+    }
+  });
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchProducts = async (query = '', page = 1) => {
+    try {
+      const response = await api.get('/products', { params: { search: query, page, limit: 10 } });
+      setProducts(response.data.products);
+      setTotalPages(response.data.totalPages);
+      setCurrentPage(response.data.currentPage);
+    } catch (error) {
+      toast.error('Failed to fetch products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (page) => {
+    fetchProducts(searchQuery, page);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchProducts(searchQuery, 1);
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/categories');
+      setCategories(response.data.categories);
+    } catch (error) {
+      console.error('Failed to fetch categories', error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await api.delete(`/products/${id}`);
+        toast.success('Product deleted');
+        fetchProducts(searchQuery, currentPage);
+      } catch (error) {
+        toast.error('Failed to delete product');
+      }
+    }
+  };
+
+  const handleEdit = (product) => {
+    setIsEditing(true);
+    setCurrentProduct(product);
+    
+    reset({
+      category_id: product.category_id,
+      name: product.name,
+      sku: product.sku,
+      description: product.description,
+      customer_price: product.customer_price,
+      wholesaler_price: product.wholesaler_price,
+      stock: product.stock,
+      status: product.status === 'active'
+    });
+    setShowModal(true);
+  };
+
+  const handleView = (product) => {
+    setViewProductData(product);
+    setShowViewModal(true);
+  };
+
+  const onSubmit = async (data) => {
+    const formData = new FormData();
+    formData.append('category_id', data.category_id);
+    formData.append('name', data.name);
+    formData.append('sku', data.sku || '');
+    formData.append('description', data.description || '');
+    formData.append('customer_price', data.customer_price || 0);
+    formData.append('wholesaler_price', data.wholesaler_price || 0);
+    formData.append('stock', data.stock || 0);
+    formData.append('status', data.status ? 'active' : 'inactive');
+
+    if (data.main_image && data.main_image[0]) {
+      formData.append('main_image', data.main_image[0]);
+    }
+    
+    if (data.images && data.images.length > 0) {
+      for (let i = 0; i < data.images.length; i++) {
+        formData.append('images', data.images[i]);
+      }
+    }
+
+    try {
+      if (isEditing) {
+        await api.put(`/products/${currentProduct.id}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Product updated');
+      } else {
+        await api.post('/products', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Product created');
+      }
+      setShowModal(false);
+      reset();
+      setIsEditing(false);
+      setCurrentProduct(null);
+      fetchProducts(searchQuery, currentPage);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Operation failed');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    reset({ 
+      status: true,
+      stock: 0,
+      sku: '',
+      name: '',
+      description: '',
+      customer_price: '',
+      wholesaler_price: '',
+      category_id: ''
+    });
+    setIsEditing(false);
+    setCurrentProduct(null);
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    if (window.confirm('Delete this image?')) {
+        try {
+            await api.delete(`/products/images/${imageId}`);
+            toast.success('Image deleted');
+            
+            // Update currentProduct state
+            setCurrentProduct(prev => ({
+                ...prev,
+                images: prev.images.filter(img => img.id !== imageId)
+            }));
+
+            // Update products list
+            setProducts(prev => prev.map(p => {
+                if (p.id === currentProduct.id) {
+                    return {
+                        ...p,
+                        images: p.images.filter(img => img.id !== imageId)
+                    };
+                }
+                return p;
+            }));
+        } catch (error) {
+            toast.error('Failed to delete image');
+        }
+    }
+  };
+
+  // Helper to get main image URL
+  const getMainImage = (product) => {
+    if (!product || !product.images) return null;
+    const main = product.images.find(img => img.is_primary);
+    return main ? main.image_url : null;
+  };
+
+  return (
+    <Layout>
+      <Container fluid className="p-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="mb-0">Products</h2>
+          <Button
+            variant="primary"
+            onClick={() => {
+                setIsEditing(false);
+                reset({ 
+                  status: true,
+                  stock: 0,
+                  sku: '',
+                  name: '',
+                  description: '',
+                  customer_price: '',
+                  wholesaler_price: '',
+                  category_id: ''
+                });
+                setShowModal(true);
+            }}
+            className="d-flex align-items-center"
+          >
+            <Plus className="me-2" size={16} />
+            Add Product
+          </Button>
+        </div>
+
+        <Form onSubmit={handleSearch} className="mb-4">
+            <Row>
+                <Col md={8} lg={6}>
+                    <div className="d-flex gap-2">
+                        <Form.Control
+                            type="text"
+                            placeholder="Search by name, SKU..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <Button type="submit" variant="outline-primary">Search</Button>
+                    </div>
+                </Col>
+            </Row>
+        </Form>
+
+        {loading ? (
+          <div className="text-center py-4">Loading...</div>
+        ) : (
+          <Card className="shadow-sm">
+            <Card.Body className="p-0">
+              <Table responsive hover className="mb-0">
+                <thead className="bg-light">
+                  <tr>
+                    <th className="px-4 py-3">Sr No.</th>
+                    <th className="px-4 py-3">Image</th>
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Customer Price</th>
+                    <th className="px-4 py-3">Stock</th>
+                    <th className="px-4 py-3 text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product, index) => {
+                    const mainImage = getMainImage(product);
+                    return (
+                    <tr key={product.id}>
+                      <td className="px-4 py-3">{(currentPage - 1) * 10 + index + 1}</td>
+                      <td className="px-4 py-3">
+                          {mainImage ? (
+                              <Image src={`http://localhost:5000/${mainImage}`} alt={product.name} rounded style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                          ) : (
+                              <div className="bg-light rounded d-flex align-items-center justify-content-center text-muted" style={{ width: '40px', height: '40px', fontSize: '10px' }}>No Img</div>
+                          )}
+                      </td>
+                      <td className="px-4 py-3 fw-medium align-middle">{product.name}</td>
+                      <td className="px-4 py-3 text-muted align-middle">{product.sku || '-'}</td>
+                      <td className="px-4 py-3 text-muted align-middle">
+                          {categories.find(c => c.id === product.category_id)?.category_name || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-muted align-middle">
+                          {product.customer_price ? `₹${product.customer_price}` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-muted align-middle">
+                          {product.stock || 0}
+                      </td>
+                      <td className="px-4 py-3 text-end align-middle">
+                        <div className="d-flex justify-content-end gap-2">
+                          <OverlayTrigger placement="top" overlay={<Tooltip>View Details</Tooltip>}>
+                            <Button
+                              variant="outline-info"
+                              size="sm"
+                              className="d-flex align-items-center justify-content-center"
+                              style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                              onClick={() => handleView(product)}
+                            >
+                              <Eye size={16} />
+                            </Button>
+                          </OverlayTrigger>
+
+                          <OverlayTrigger placement="top" overlay={<Tooltip>Edit Product</Tooltip>}>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              className="d-flex align-items-center justify-content-center"
+                              style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                              onClick={() => handleEdit(product)}
+                            >
+                              <Edit size={16} />
+                            </Button>
+                          </OverlayTrigger>
+
+                          <OverlayTrigger placement="top" overlay={<Tooltip>Delete Product</Tooltip>}>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              className="d-flex align-items-center justify-content-center"
+                              style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                              onClick={() => handleDelete(product.id)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </OverlayTrigger>
+                        </div>
+                      </td>
+                    </tr>
+                  )})}
+                   {products.length === 0 && (
+                      <tr>
+                          <td colSpan="8" className="text-center py-4 text-muted">No products found.</td>
+                      </tr>
+                  )}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        )}
+
+        {totalPages > 1 && (
+            <PaginationComponent 
+              currentPage={currentPage} 
+              totalPages={totalPages} 
+              onPageChange={handlePageChange} 
+            />
+        )}
+
+        <Modal show={showModal} onHide={handleCloseModal} size="lg" centered scrollable backdrop="static" className="modal-with-sidebar">
+          <Modal.Header closeButton>
+            <Modal.Title>{isEditing ? 'Edit Product' : 'Add Product'}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form id="product-form" onSubmit={handleSubmit(onSubmit)}>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Category</Form.Label>
+                    <Form.Select {...register('category_id', { required: true })}>
+                      <option value="">Select Category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.category_name}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Product Name</Form.Label>
+                    <Form.Control {...register('name', { required: true })} />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                 <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>SKU</Form.Label>
+                    <Form.Control {...register('sku')} />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Description</Form.Label>
+                <Form.Control as="textarea" rows={3} {...register('description')} />
+              </Form.Group>
+
+              <Row>
+                  <Col md={4}>
+                      <Form.Group className="mb-3">
+                          <Form.Label>Customer Price</Form.Label>
+                          <Form.Control type="number" step="0.01" {...register('customer_price')} />
+                      </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                      <Form.Group className="mb-3">
+                          <Form.Label>Wholesaler Price</Form.Label>
+                          <Form.Control type="number" step="0.01" {...register('wholesaler_price')} />
+                      </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                      <Form.Group className="mb-3">
+                          <Form.Label>Stock</Form.Label>
+                          <Form.Control type="number" {...register('stock')} />
+                      </Form.Group>
+                  </Col>
+              </Row>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Main Image</Form.Label>
+                {isEditing && currentProduct && getMainImage(currentProduct) && (
+                    <div className="mb-2">
+                        <Image src={`http://localhost:5000/${getMainImage(currentProduct)}`} thumbnail style={{ height: '100px', objectFit: 'contain' }} />
+                        <div className="form-text text-muted">Upload new image to replace current one.</div>
+                    </div>
+                )}
+                <Form.Control type="file" {...register('main_image')} />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Additional Images</Form.Label>
+                {isEditing && currentProduct?.images?.length > 0 && (
+                    <div className="d-flex gap-2 flex-wrap mb-2">
+                        {currentProduct.images.filter(img => !img.is_primary).map(img => (
+                            <div key={img.id} className="position-relative">
+                                <Image src={`http://localhost:5000/${img.image_url}`} thumbnail style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                                <Button 
+                                    variant="danger" 
+                                    size="sm" 
+                                    className="position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center"
+                                    style={{ width: '20px', height: '20px', borderRadius: '50%', transform: 'translate(30%, -30%)' }}
+                                    onClick={() => handleDeleteImage(img.id)}
+                                >
+                                    <X size={12} />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <Form.Control type="file" multiple {...register('images')} />
+              </Form.Group>
+
+              <Row>
+                  <Col md={12}>
+                      <Form.Group className="mb-3">
+                        <Form.Check type="checkbox" label="Active Status" {...register('status')} />
+                      </Form.Group>
+                  </Col>
+              </Row>
+
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleCloseModal}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="product-form">
+              {isEditing ? 'Update' : 'Create'}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* View Product Modal */}
+        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" centered scrollable className="modal-with-sidebar">
+            <Modal.Header closeButton>
+                <Modal.Title>Product Details</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                {viewProductData && (
+                    <Container fluid className="p-0">
+                        {/* Top Section: Images and Key Info */}
+                        <Row className="mb-4">
+                            {/* Image Gallery Section */}
+                            <Col lg={5} className="mb-3 mb-lg-0">
+                                <div className="border rounded p-2 mb-2 bg-white text-center">
+                                    {getMainImage(viewProductData) ? (
+                                        <Image 
+                                            src={`http://localhost:5000/${getMainImage(viewProductData)}`} 
+                                            alt={viewProductData.name} 
+                                            fluid 
+                                            style={{ maxHeight: '300px', objectFit: 'contain' }} 
+                                        />
+                                    ) : (
+                                        <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: '300px' }}>
+                                            No Main Image
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Additional Images Thumbnails */}
+                                {viewProductData.images && viewProductData.images.filter(img => !img.is_primary).length > 0 && (
+                                    <div className="d-flex gap-2 overflow-auto py-1">
+                                        {viewProductData.images.filter(img => !img.is_primary).map((img, idx) => (
+                                            <Image 
+                                                key={img.id || idx}
+                                                src={`http://localhost:5000/${img.image_url}`}
+                                                thumbnail
+                                                style={{ width: '60px', height: '60px', objectFit: 'cover', cursor: 'pointer' }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </Col>
+
+                            {/* Product Details Section */}
+                            <Col lg={7}>
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h4 className="fw-bold mb-1">{viewProductData.name}</h4>
+                                        <div className="text-muted small mb-2">ID: {viewProductData.id} | SKU: {viewProductData.sku || '-'}</div>
+                                    </div>
+                                    <Badge bg={viewProductData.status === 'active' ? "success" : "danger"} className="fs-6">
+                                        {viewProductData.status === 'active' ? "Active" : "Inactive"}
+                                    </Badge>
+                                </div>
+
+                                <div className="mb-3">
+                                    <Badge bg="info" className="me-2 text-dark">{categories.find(c => c.id === viewProductData.category_id)?.category_name || 'Uncategorized'}</Badge>
+                                </div>
+
+                                <Card className="bg-light border-0 mb-3">
+                                    <Card.Body className="py-2">
+                                        <Row className="g-2 text-center">
+                                            <Col xs={6}>
+                                                <div className="text-muted small">Customer Price</div>
+                                                <div className="text-success fw-bold fs-5">₹{viewProductData.customer_price}</div>
+                                            </Col>
+                                            <Col xs={6}>
+                                                <div className="text-muted small">Wholesaler Price</div>
+                                                <div className="text-primary fw-bold">₹{viewProductData.wholesaler_price}</div>
+                                            </Col>
+                                        </Row>
+                                    </Card.Body>
+                                </Card>
+
+                                <Row className="g-3 mb-3">
+                                    <Col xs={6} md={4}>
+                                        <small className="text-muted d-block">Stock</small>
+                                        <strong>{viewProductData.stock || 0}</strong>
+                                    </Col>
+                                    <Col xs={6} md={4}>
+                                        <small className="text-muted d-block">Created At</small>
+                                        <span>{(viewProductData.createdAt || viewProductData.created_at) ? new Date(viewProductData.createdAt || viewProductData.created_at).toLocaleDateString() : '-'}</span>
+                                    </Col>
+                                    <Col xs={6} md={4}>
+                                        <small className="text-muted d-block">Last Updated</small>
+                                        <span>{(viewProductData.updatedAt || viewProductData.updated_at) ? new Date(viewProductData.updatedAt || viewProductData.updated_at).toLocaleDateString() : '-'}</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+
+                        <hr />
+
+                        <Row>
+                            <Col md={12} className="mb-4">
+                                <div className="mb-3">
+                                    <strong className="d-block text-dark mb-1">Description</strong>
+                                    <div className="bg-light p-3 rounded text-break border">
+                                        {viewProductData.description || 'No description.'}
+                                    </div>
+                                </div>
+                            </Col>
+                        </Row>
+                    </Container>
+                )}
+            </Modal.Body>
+        </Modal>
+      </Container>
+    </Layout>
+  );
+};
+
+export default Products;
