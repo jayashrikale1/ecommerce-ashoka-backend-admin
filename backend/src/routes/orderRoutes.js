@@ -152,5 +152,6 @@ router.get('/admin/all', authMiddleware, orderController.getAllOrders);
  *         description: Admin access required
  */
 router.put('/admin/:id/status', authMiddleware, orderController.updateOrderStatus);
+router.get('/admin/:id/invoice', authMiddleware, orderController.getOrderInvoice);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Layers, LogOut, KeyRound, Settings, User, Users, Briefcase, ChevronDown, ChevronRight, MessageSquare, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Layers, LogOut, KeyRound, Settings, User, Users, Briefcase, ChevronDown, ChevronRight, MessageSquare, ShoppingCart, Tag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Nav, Collapse } from 'react-bootstrap';
 import logo from '../assets/logo.png';
@@ -74,6 +74,28 @@ const Sidebar = ({ className = '', style = {}, onNavigate }) => {
           >
             <ShoppingCart className="me-3" size={20} />
             <span>Orders</span>
+          </Link>
+        </Nav.Item>
+
+        <Nav.Item>
+          <Link
+            to="/coupons"
+            className={`nav-link-custom ${isActive('/coupons') ? 'active' : ''} text-decoration-none`}
+            onClick={onNavigate}
+          >
+            <Tag className="me-3" size={20} />
+            <span>Coupons</span>
+          </Link>
+        </Nav.Item>
+        
+        <Nav.Item>
+          <Link
+            to="/reviews"
+            className={`nav-link-custom ${isActive('/reviews') ? 'active' : ''} text-decoration-none`}
+            onClick={onNavigate}
+          >
+            <MessageSquare className="me-3" size={20} />
+            <span>Reviews</span>
           </Link>
         </Nav.Item>
 

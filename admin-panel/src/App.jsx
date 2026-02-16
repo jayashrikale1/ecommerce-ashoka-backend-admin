@@ -15,6 +15,8 @@ import Products from './pages/Products';
 import Users from './pages/Users';
 import Wholesalers from './pages/Wholesalers';
 import Orders from './pages/Orders';
+import Coupons from './pages/Coupons';
+import Reviews from './pages/Reviews';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -34,6 +36,8 @@ function App() {
              <Route path="/users" element={<Users />} />
              <Route path="/wholesalers" element={<Wholesalers />} />
              <Route path="/orders" element={<Orders />} />
+             <Route path="/coupons" element={<Coupons />} />
+             <Route path="/reviews" element={<Reviews />} />
              <Route path="/change-password" element={<ChangePassword />} />
              <Route path="/profile" element={<Profile />} />
              <Route path="/" element={<Navigate to="/dashboard" replace />} />

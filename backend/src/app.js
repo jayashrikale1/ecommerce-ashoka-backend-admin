@@ -14,6 +14,10 @@ const wholesalerRoutes = require('./routes/wholesalerRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const couponRoutes = require('./routes/couponRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
+const communicationsRoutes = require('./routes/communicationsRoutes');
 
 const app = express();
 
@@ -35,6 +39,10 @@ app.use('/api/wholesalers', wholesalerRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/communications', communicationsRoutes);
 
 // Swagger Config
 const swaggerOptions = {

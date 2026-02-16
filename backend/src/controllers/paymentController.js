@@ -1,7 +1,8 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { Order, Cart, CartItem, Product, OrderItem } = require('../models');
+const { Order, Cart, CartItem, Product, OrderItem, Coupon } = require('../models');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -14,7 +15,7 @@ exports.createRazorpayOrder = async (req, res) => {
   try {
     const userId = req.user.id;
     const userType = req.userType;
-    const { shipping_address, notes } = req.body;
+    const { shipping_address, notes, coupon_code } = req.body;
 
     if (!shipping_address) {
       await t.rollback();
@@ -68,9 +69,44 @@ exports.createRazorpayOrder = async (req, res) => {
       });
     }
 
+    // Apply coupon if provided
+    let discountAmount = 0;
+    let appliedCoupon = null;
+    if (coupon_code) {
+      const now = new Date();
+      const coupon = await Coupon.findOne({
+        where: {
+          code: coupon_code.trim().toUpperCase(),
+          active: true,
+          [Op.and]: [
+            { [Op.or]: [{ start_date: null }, { start_date: { [Op.lte]: now } }] },
+            { [Op.or]: [{ end_date: null }, { end_date: { [Op.gte]: now } }] }
+          ]
+        },
+        transaction: t
+      });
+      if (coupon) {
+        if (coupon.usage_limit !== null && coupon.used_count >= coupon.usage_limit) {
+          // ignore coupon if limit reached
+        } else if (coupon.min_order_value && totalAmount < parseFloat(coupon.min_order_value)) {
+          // ignore coupon if below minimum
+        } else {
+          if (coupon.discount_type === 'percentage') {
+            discountAmount = (totalAmount * parseFloat(coupon.discount_value)) / 100.0;
+          } else {
+            discountAmount = parseFloat(coupon.discount_value);
+          }
+          if (discountAmount > totalAmount) discountAmount = totalAmount;
+          appliedCoupon = coupon;
+        }
+      }
+    }
+
+    const payableAmount = (totalAmount - discountAmount);
+
     // 3. Create Razorpay Order
     const options = {
-      amount: Math.round(totalAmount * 100), // Amount in paise
+      amount: Math.round(payableAmount * 100), // Amount in paise after discount
       currency: 'INR',
       receipt: `receipt_order_${Date.now()}`,
     };
@@ -84,7 +120,7 @@ exports.createRazorpayOrder = async (req, res) => {
 
     // 4. Create Local Order (Pending Payment)
     const orderData = {
-      total_amount: totalAmount,
+      total_amount: payableAmount,
       shipping_address,
       payment_method: 'online',
       status: 'pending',
@@ -92,6 +128,10 @@ exports.createRazorpayOrder = async (req, res) => {
       razorpay_order_id: razorpayOrder.id,
       notes
     };
+    if (appliedCoupon) {
+      orderData.coupon_code = appliedCoupon.code;
+      orderData.discount_amount = discountAmount;
+    }
 
     if (userType === 'wholesaler') {
       orderData.wholesaler_id = userId;
@@ -122,6 +162,11 @@ exports.createRazorpayOrder = async (req, res) => {
       transaction: t
     });
 
+    // Increment coupon usage if applied
+    if (appliedCoupon) {
+      await appliedCoupon.increment('used_count', { by: 1, transaction: t });
+    }
+
     await t.commit();
 
     res.status(200).json({
@@ -140,6 +185,46 @@ exports.createRazorpayOrder = async (req, res) => {
   }
 };
 
+// Refund Payment (Admin)
+exports.refundPayment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.payment_status !== 'paid') {
+      return res.status(400).json({ message: 'Only paid orders can be refunded' });
+    }
+    if (!order.razorpay_payment_id) {
+      return res.status(400).json({ message: 'No payment_id found for this order' });
+    }
+
+    const amountPaise = Math.round(parseFloat(order.total_amount) * 100);
+
+    const refund = await razorpay.payments.refund(order.razorpay_payment_id, {
+      amount: amountPaise
+    });
+
+    if (!refund || !refund.id) {
+      return res.status(500).json({ message: 'Refund failed' });
+    }
+
+    order.payment_status = 'refunded';
+    order.razorpay_refund_id = refund.id;
+    await order.save();
+
+    res.status(200).json({
+      message: 'Refund processed',
+      order_id: order.id,
+      refund_id: refund.id,
+      amount: refund.amount
+    });
+  } catch (error) {
+    console.error('Refund payment error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
 // Verify Razorpay Payment
 exports.verifyPayment = async (req, res) => {
   try {

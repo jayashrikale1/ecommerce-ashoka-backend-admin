@@ -18,8 +18,8 @@ const Layout = ({ children }) => {
           <Sidebar />
       </div>
 
-      {/* Mobile Sidebar (Offcanvas) */}
-      <Offcanvas show={showMobileSidebar} onHide={handleClose} responsive="lg" className="d-md-none bg-dark text-white" style={{ maxWidth: '280px' }}>
+      {/* Mobile/Tablet Sidebar (Offcanvas) */}
+      <Offcanvas show={showMobileSidebar} onHide={handleClose} responsive="lg" className="d-lg-none bg-dark text-white" style={{ maxWidth: '280px' }}>
         <Offcanvas.Header closeButton closeVariant="white">
           <Offcanvas.Title>Menu</Offcanvas.Title>
         </Offcanvas.Header>
@@ -36,7 +36,7 @@ const Layout = ({ children }) => {
             <div className="d-flex align-items-center">
                 <Button 
                     variant="link" 
-                    className="d-md-none p-0 me-3 text-dark" 
+                    className="d-lg-none p-0 me-3 text-dark" 
                     onClick={handleShow}
                 >
                     <Menu size={24} />

@@ -152,6 +152,7 @@ const Dashboard = () => {
                  <Table hover className="mb-0 align-middle">
                    <thead className="bg-light">
                      <tr>
+                       <th className="border-0 py-3 ps-4">Sr No</th>
                        <th className="border-0 py-3 ps-4">Order ID</th>
                        <th className="border-0 py-3">Customer</th>
                        <th className="border-0 py-3">Amount</th>
@@ -162,8 +163,9 @@ const Dashboard = () => {
                    </thead>
                    <tbody>
                      {stats.recentOrders && stats.recentOrders.length > 0 ? (
-                       stats.recentOrders.map((order) => (
+                       stats.recentOrders.map((order, index) => (
                          <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/orders')}>
+                           <td className="ps-4 text-muted">{index + 1}</td>
                            <td className="ps-4 fw-medium">#{order.id}</td>
                            <td>
                              {order.customer ? order.customer.name : (order.wholesaler ? order.wholesaler.business_name : 'Unknown')}
@@ -188,7 +190,7 @@ const Dashboard = () => {
                        ))
                      ) : (
                        <tr>
-                         <td colSpan="6" className="text-center py-5 text-muted">No recent orders found.</td>
+                         <td colSpan="7" className="text-center py-5 text-muted">No recent orders found.</td>
                        </tr>
                      )}
                    </tbody>

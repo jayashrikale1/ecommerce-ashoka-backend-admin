@@ -3,6 +3,7 @@ const router = express.Router();
 const productController = require('../controllers/productController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const cartAuthMiddleware = require('../middlewares/cartAuthMiddleware');
 
 // Configure upload to handle multiple fields
 const cpUpload = upload.fields([
@@ -151,6 +152,10 @@ router.post('/', authMiddleware, cpUpload, productController.createProduct);
  *         description: Server error
  */
 router.get('/', productController.getAllProducts);
+
+// Role-aware pricing endpoints (require customer/wholesaler auth)
+router.get('/priced', cartAuthMiddleware, productController.getAllProductsPriced);
+router.get('/:id/priced', cartAuthMiddleware, productController.getProductByIdPriced);
 
 /**
  * @swagger

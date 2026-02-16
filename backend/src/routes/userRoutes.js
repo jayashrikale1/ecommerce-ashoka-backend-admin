@@ -70,5 +70,6 @@ router.put('/profile', userMiddleware, userController.updateProfile);
  *         description: List of users
  */
 router.get('/', authMiddleware, userController.getAllUsers);
+router.get('/admin/export', authMiddleware, userController.exportUsersCsv);
 
 module.exports = router;

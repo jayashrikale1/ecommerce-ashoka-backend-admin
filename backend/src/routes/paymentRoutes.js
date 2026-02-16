@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const cartAuthMiddleware = require('../middlewares/cartAuthMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -93,5 +94,8 @@ router.post('/create-order', cartAuthMiddleware, paymentController.createRazorpa
  *         description: Order not found
  */
 router.post('/verify', cartAuthMiddleware, paymentController.verifyPayment);
+
+// Admin refund endpoint
+router.post('/refund/:orderId', authMiddleware, paymentController.refundPayment);
 
 module.exports = router;

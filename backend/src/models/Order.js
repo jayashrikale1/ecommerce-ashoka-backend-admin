@@ -42,8 +42,17 @@ const Order = sequelize.define('Order', {
     defaultValue: 'cod'
   },
   payment_status: {
-    type: DataTypes.ENUM('pending', 'paid', 'failed'),
+    type: DataTypes.ENUM('pending', 'paid', 'failed', 'refunded'),
     defaultValue: 'pending'
+  },
+  coupon_code: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  discount_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
   },
   notes: {
     type: DataTypes.TEXT,
@@ -58,6 +67,10 @@ const Order = sequelize.define('Order', {
     allowNull: true
   },
   razorpay_signature: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  razorpay_refund_id: {
     type: DataTypes.STRING,
     allowNull: true
   }

@@ -73,6 +73,7 @@ router.put('/profile', wholesalerMiddleware, wholesalerController.updateProfile)
  *         description: List of wholesalers
  */
 router.get('/', authMiddleware, wholesalerController.getAllWholesalers);
+router.get('/admin/export', authMiddleware, wholesalerController.exportWholesalersCsv);
 
 /**
  * @swagger

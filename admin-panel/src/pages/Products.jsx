@@ -197,11 +197,21 @@ const Products = () => {
     }
   };
 
-  // Helper to get main image URL
+  const buildImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    if (typeof imagePath !== 'string') return null;
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    const baseUrl = 'http://127.0.0.1:5000';
+    const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    return `${baseUrl}${normalizedPath}`;
+  };
+
   const getMainImage = (product) => {
     if (!product || !product.images) return null;
-    const main = product.images.find(img => img.is_primary);
-    return main ? main.image_url : null;
+    const main = product.images.find(img => img.is_primary) || product.images[0];
+    return main ? buildImageUrl(main.image_url) : null;
   };
 
   return (
@@ -274,7 +284,7 @@ const Products = () => {
                       <td className="px-4 py-3">{(currentPage - 1) * 10 + index + 1}</td>
                       <td className="px-4 py-3">
                           {mainImage ? (
-                              <Image src={`http://localhost:5000/${mainImage}`} alt={product.name} rounded style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                              <Image src={mainImage} alt={product.name} rounded style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
                           ) : (
                               <div className="bg-light rounded d-flex align-items-center justify-content-center text-muted" style={{ width: '40px', height: '40px', fontSize: '10px' }}>No Img</div>
                           )}
@@ -417,7 +427,7 @@ const Products = () => {
                 <Form.Label>Main Image</Form.Label>
                 {isEditing && currentProduct && getMainImage(currentProduct) && (
                     <div className="mb-2">
-                        <Image src={`http://localhost:5000/${getMainImage(currentProduct)}`} thumbnail style={{ height: '100px', objectFit: 'contain' }} />
+                        <Image src={getMainImage(currentProduct)} thumbnail style={{ height: '100px', objectFit: 'contain' }} />
                         <div className="form-text text-muted">Upload new image to replace current one.</div>
                     </div>
                 )}
@@ -430,7 +440,7 @@ const Products = () => {
                     <div className="d-flex gap-2 flex-wrap mb-2">
                         {currentProduct.images.filter(img => !img.is_primary).map(img => (
                             <div key={img.id} className="position-relative">
-                                <Image src={`http://localhost:5000/${img.image_url}`} thumbnail style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                                <Image src={buildImageUrl(img.image_url)} thumbnail style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
                                 <Button 
                                     variant="danger" 
                                     size="sm" 
@@ -482,7 +492,7 @@ const Products = () => {
                                     {viewProductData.images && viewProductData.images.length > 0 ? (
                                         <div className="position-relative" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <Image 
-                                                src={`http://localhost:5000/${viewProductData.images[activeImageIndex]?.image_url}`} 
+                                                src={buildImageUrl(viewProductData.images[activeImageIndex]?.image_url)} 
                                                 alt={viewProductData.name} 
                                                 fluid 
                                                 style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} 

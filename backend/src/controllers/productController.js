@@ -125,6 +125,75 @@ exports.getProductById = async (req, res) => {
   }
 };
 
+// Role-aware pricing: returns effective_price based on authenticated viewer (customer/wholesaler)
+exports.getAllProductsPriced = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    let whereClause = {};
+
+    if (search) {
+      whereClause = {
+        [Op.or]: [
+          { name: { [Op.like]: `%${search}%` } },
+          { sku: { [Op.like]: `%${search}%` } }
+        ]
+      };
+    }
+
+    const userType = req.userType; // set by cartAuthMiddleware
+
+    const { count, rows } = await Product.findAndCountAll({
+      where: whereClause,
+      include: [
+        { model: Category, as: 'category' },
+        { model: ProductImage, as: 'images' }
+      ],
+      distinct: true,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['created_at', 'DESC']]
+    });
+
+    const products = rows.map(p => {
+      const data = p.toJSON();
+      const effective_price = userType === 'wholesaler' ? data.wholesaler_price : data.customer_price;
+      const price_type = userType === 'wholesaler' ? 'wholesaler' : 'customer';
+      return { ...data, effective_price, price_type };
+    });
+
+    res.json({
+      products,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: parseInt(page)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.getProductByIdPriced = async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id, {
+      include: [
+        { model: Category, as: 'category' },
+        { model: ProductImage, as: 'images' }
+      ]
+    });
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    const data = product.toJSON();
+    const userType = req.userType;
+    const effective_price = userType === 'wholesaler' ? data.wholesaler_price : data.customer_price;
+    const price_type = userType === 'wholesaler' ? 'wholesaler' : 'customer';
+    res.json({ ...data, effective_price, price_type });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 exports.updateProduct = async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);

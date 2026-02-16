@@ -12,10 +12,16 @@ const Wholesalers = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [currentWholesaler, setCurrentWholesaler] = useState(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logs, setLogs] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +33,9 @@ const Wholesalers = () => {
       setLoading(true);
       const params = { search: query, page, limit: 10 };
       if (status) params.status = status;
+      if (verifiedFilter) params.verified = verifiedFilter;
+      if (fromDate) params.from = fromDate;
+      if (toDate) params.to = toDate;
       
       const response = await api.get('/wholesalers', { params });
       setWholesalers(response.data.wholesalers);
@@ -51,6 +60,43 @@ const Wholesalers = () => {
   const handleFilterChange = (e) => {
     setStatusFilter(e.target.value);
     fetchWholesalers(searchQuery, e.target.value, 1);
+  };
+  const handleExport = async () => {
+    try {
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+      if (statusFilter) params.status = statusFilter;
+      if (verifiedFilter) params.verified = verifiedFilter;
+      if (fromDate) params.from = fromDate;
+      if (toDate) params.to = toDate;
+      const resp = await api.get('/wholesalers/admin/export', { params, responseType: 'blob' });
+      const blobUrl = URL.createObjectURL(resp.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = 'wholesalers-export.csv';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(link);
+      }, 500);
+    } catch {
+      toast.error('Failed to export wholesalers');
+    }
+  };
+  const openLogs = async (wholesaler) => {
+    setCurrentWholesaler(wholesaler);
+    setShowLogs(true);
+    setLogs([]);
+    setLogsLoading(true);
+    try {
+      const resp = await api.get('/communications/admin', { params: { entityType: 'wholesaler', entityId: wholesaler.id, limit: 20 } });
+      setLogs(resp.data.logs || []);
+    } catch {
+      toast.error('Failed to load logs');
+    } finally {
+      setLogsLoading(false);
+    }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
@@ -83,6 +129,10 @@ const Wholesalers = () => {
       <Container fluid className="p-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2 className="mb-0">Wholesaler Management</h2>
+          <div className="d-flex gap-2">
+            <Button variant="outline-secondary" onClick={handleExport}>Export CSV</Button>
+            <Button variant="outline-warning" onClick={() => { setStatusFilter('pending'); fetchWholesalers(searchQuery, 'pending', 1); }}>Verification Queue</Button>
+          </div>
         </div>
 
         <Card className="shadow-sm border-0 rounded-3 mb-4">
@@ -111,6 +161,19 @@ const Wholesalers = () => {
                                 <option value="rejected">Rejected</option>
                                 <option value="blocked">Blocked</option>
                             </Form.Select>
+                        </Col>
+                        <Col xs={12} md={3}>
+                            <Form.Select value={verifiedFilter} onChange={(e) => setVerifiedFilter(e.target.value)} className="border-secondary-subtle">
+                                <option value="">Verified: Any</option>
+                                <option value="true">Verified</option>
+                                <option value="false">Unverified</option>
+                            </Form.Select>
+                        </Col>
+                        <Col xs={6} md={3}>
+                            <Form.Control type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                        </Col>
+                        <Col xs={6} md={3}>
+                            <Form.Control type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
                         </Col>
                         <Col xs={12} md={2}>
                             <Button type="submit" variant="primary" className="w-100">
@@ -181,6 +244,17 @@ const Wholesalers = () => {
                                         onClick={() => handleViewDetails(wholesaler)}
                                     >
                                         <FileText size={16} />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger placement="top" overlay={<Tooltip>Logs</Tooltip>}>
+                                    <Button 
+                                        variant="light" 
+                                        className="btn-icon text-primary rounded-circle border-0 shadow-sm"
+                                        size="sm" 
+                                        style={{ width: '32px', height: '32px' }}
+                                        onClick={() => openLogs(wholesaler)}
+                                    >
+                                        <Eye size={16} />
                                     </Button>
                                 </OverlayTrigger>
 
@@ -263,6 +337,7 @@ const Wholesalers = () => {
                             <p><strong>Email:</strong> {currentWholesaler.email}</p>
                             <p><strong>Phone:</strong> {currentWholesaler.phone}</p>
                             <p><strong>GST Number:</strong> {currentWholesaler.gst_number || 'N/A'}</p>
+                            <p><strong>Verified:</strong> {currentWholesaler.is_verified ? 'Yes' : 'No'}</p>
                         </Col>
                         <Col md={6}>
                             <p><strong>Address:</strong> {currentWholesaler.address || 'N/A'}</p>
@@ -270,6 +345,7 @@ const Wholesalers = () => {
                             <p><strong>State:</strong> {currentWholesaler.state || 'N/A'}</p>
                             <p><strong>Pincode:</strong> {currentWholesaler.pincode || 'N/A'}</p>
                             <p><strong>Status:</strong> <Badge bg={getStatusBadge(currentWholesaler.status)}>{currentWholesaler.status}</Badge></p>
+                            <p><strong>Documents:</strong> N/A</p>
                         </Col>
                     </Row>
                 )}
@@ -282,6 +358,54 @@ const Wholesalers = () => {
                         <Button variant="success" onClick={() => handleStatusUpdate(currentWholesaler.id, 'approved')}>Approve</Button>
                     </>
                 )}
+            </Modal.Footer>
+        </Modal>
+        {/* Logs Modal */}
+        <Modal show={showLogs} onHide={() => setShowLogs(false)} size="lg">
+            <Modal.Header closeButton>
+                <Modal.Title>Communication Logs {currentWholesaler ? `- ${currentWholesaler.business_name || currentWholesaler.email || currentWholesaler.phone}` : ''}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                {logsLoading ? (
+                    <div className="text-center py-4">
+                        <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="table-responsive">
+                        <Table hover className="mb-0">
+                            <thead className="bg-light text-uppercase small text-muted">
+                                <tr>
+                                    <th>Channel</th>
+                                    <th>Subject</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logs.map(l => (
+                                    <tr key={l.id}>
+                                        <td>{l.channel}</td>
+                                        <td>{l.subject || '-'}</td>
+                                        <td style={{ maxWidth: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.message || '-'}</td>
+                                        <td><Badge bg={l.status === 'sent' ? 'success' : 'danger'}>{l.status}</Badge></td>
+                                        <td>{new Date(l.created_at).toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                                {logs.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="text-center py-3 text-muted">No logs</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </Table>
+                    </div>
+                )}
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowLogs(false)}>Close</Button>
             </Modal.Footer>
         </Modal>
 
