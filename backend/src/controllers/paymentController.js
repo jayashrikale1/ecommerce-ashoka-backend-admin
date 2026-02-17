@@ -4,15 +4,26 @@ const { Order, Cart, CartItem, Product, OrderItem, Coupon } = require('../models
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const hasRazorpayConfig = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+
+const razorpay = hasRazorpayConfig
+  ? new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    })
+  : null;
 
 // Create Razorpay Order
 exports.createRazorpayOrder = async (req, res) => {
   const t = await sequelize.transaction();
   try {
+    if (!hasRazorpayConfig || !razorpay) {
+      await t.rollback();
+      console.error('Razorpay configuration missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.');
+      return res
+        .status(500)
+        .json({ message: 'Online payments are temporarily unavailable. Please try COD or contact support.' });
+    }
     const userId = req.user.id;
     const userType = req.userType;
     const { shipping_address, notes, coupon_code } = req.body;
