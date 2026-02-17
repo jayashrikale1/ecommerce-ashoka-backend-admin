@@ -51,7 +51,7 @@ const sendOtpToUser = async (identifier, type, otp) => {
 
 exports.sendOtp = async (req, res) => {
     try {
-        const { email, phone } = req.body;
+        const { email, phone, mode } = req.body;
 
         if (!email && !phone) {
             return res.status(400).json({ message: 'Email or Phone is required' });
@@ -64,7 +64,6 @@ exports.sendOtp = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otp_expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Check if user exists
         let user = await User.findOne({ 
             where: { 
                 [type]: identifier 
@@ -72,8 +71,12 @@ exports.sendOtp = async (req, res) => {
         });
 
         if (!user) {
-            // Create new user if not exists (Registration initiated)
-            // We create a record with just the identifier and OTP
+            if (mode === 'login') {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No account found with this email. Registration is mandatory before login.'
+                });
+            }
             user = await User.create({
                 [type]: identifier,
                 otp,

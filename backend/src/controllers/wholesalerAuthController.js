@@ -50,7 +50,7 @@ const sendOtpToWholesaler = async (identifier, type, otp) => {
 
 exports.sendOtp = async (req, res) => {
   try {
-    const { email, phone } = req.body;
+    const { email, phone, mode } = req.body;
     
     if (!email && !phone) {
       return res.status(400).json({ message: 'Email or Phone is required' });
@@ -63,11 +63,15 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otp_expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-    // Check if wholesaler exists, if not create new (registration)
     let wholesaler = await Wholesaler.findOne({ where: { [type]: identifier } });
 
     if (!wholesaler) {
-      // Create new wholesaler record
+      if (mode === 'login') {
+        return res.status(404).json({
+          success: false,
+          message: 'No wholesaler account found with this email. Registration is mandatory before login.'
+        });
+      }
       wholesaler = await Wholesaler.create({
         [type]: identifier,
         otp,
