@@ -4,7 +4,14 @@ const { Order, Cart, CartItem, Product, OrderItem, Coupon } = require('../models
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
-const hasRazorpayConfig = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+const isValidRazorpayValue = (value) =>
+  typeof value === 'string' &&
+  value.trim().length > 0 &&
+  !value.includes('YOUR_RAZORPAY_KEY_');
+
+const hasRazorpayConfig =
+  isValidRazorpayValue(process.env.RAZORPAY_KEY_ID) &&
+  isValidRazorpayValue(process.env.RAZORPAY_KEY_SECRET);
 
 const razorpay = hasRazorpayConfig
   ? new Razorpay({
