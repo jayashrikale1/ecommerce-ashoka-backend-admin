@@ -541,11 +541,11 @@ exports.updateOrderStatus = async (req, res) => {
   </body>
 </html>
         `;
-        const host = process.env.SMTP_HOST;
-        const port = parseInt(process.env.SMTP_PORT || '0', 10);
-        const user = process.env.SMTP_USER;
-        const pass = process.env.SMTP_PASS;
-        const from = process.env.FROM_EMAIL || 'no-reply@ecommerce-ashoka.local';
+        const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+        const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '0', 10);
+        const user = process.env.SMTP_USER || process.env.MAIL_USER;
+        const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+        const from = process.env.FROM_EMAIL || process.env.ADMIN_EMAIL || 'no-reply@ecommerce-ashoka.local';
         const transport = host && port && user && pass
           ? nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
           : nodemailer.createTransport({ streamTransport: true, newline: 'unix', buffer: true });

@@ -1,11 +1,51 @@
 const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+const nodemailer = require('nodemailer');
 
-// Mock function to send OTP
+const createEmailTransport = () => {
+    const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+    const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '0', 10);
+    const user = process.env.SMTP_USER || process.env.MAIL_USER;
+    const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+
+    if (host && port && user && pass) {
+        return nodemailer.createTransport({
+            host,
+            port,
+            secure: port === 465,
+            auth: { user, pass }
+        });
+    }
+
+    return nodemailer.createTransport({
+        streamTransport: true,
+        newline: 'unix',
+        buffer: true
+    });
+};
+
 const sendOtpToUser = async (identifier, type, otp) => {
-    console.log(`[MOCK OTP] Sending ${otp} to ${type}: ${identifier}`);
-    // Integration with SMS/Email provider goes here
+    if (type === 'email') {
+        const transport = createEmailTransport();
+        const from = process.env.FROM_EMAIL || process.env.ADMIN_EMAIL || 'no-reply@ecommerce-ashoka.local';
+        const subject = 'Your Ashoka verification code';
+        const text = `Your Ashoka verification code is ${otp}. It will expire in 10 minutes.`;
+        const html = `
+            <p>Your Ashoka verification code is <strong>${otp}</strong>.</p>
+            <p>This code will expire in 10 minutes.</p>
+        `;
+        await transport.sendMail({
+            from,
+            to: identifier,
+            subject,
+            text,
+            html
+        });
+        return true;
+    }
+
+    console.log(`[MOCK OTP] Sending ${otp} to phone: ${identifier}`);
     return true;
 };
 

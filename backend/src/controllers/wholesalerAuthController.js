@@ -1,10 +1,50 @@
 const { Wholesaler } = require('../models');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
-// Helper to send OTP (Mock implementation)
+const createEmailTransport = () => {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '0', 10);
+  const user = process.env.SMTP_USER || process.env.MAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+
+  if (host && port && user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+  }
+
+  return nodemailer.createTransport({
+    streamTransport: true,
+    newline: 'unix',
+    buffer: true
+  });
+};
+
 const sendOtpToWholesaler = async (identifier, type, otp) => {
-  console.log(`[MOCK OTP] Sending OTP ${otp} to ${type}: ${identifier}`);
-  // In production, integrate with SMS/Email provider
+  if (type === 'email') {
+    const transport = createEmailTransport();
+    const from = process.env.FROM_EMAIL || process.env.ADMIN_EMAIL || 'no-reply@ecommerce-ashoka.local';
+    const subject = 'Your Ashoka wholesaler verification code';
+    const text = `Your Ashoka wholesaler verification code is ${otp}. It will expire in 10 minutes.`;
+    const html = `
+      <p>Your Ashoka wholesaler verification code is <strong>${otp}</strong>.</p>
+      <p>This code will expire in 10 minutes.</p>
+    `;
+    await transport.sendMail({
+      from,
+      to: identifier,
+      subject,
+      text,
+      html
+    });
+    return true;
+  }
+
+  console.log(`[MOCK OTP] Sending OTP ${otp} to phone: ${identifier}`);
   return true;
 };
 

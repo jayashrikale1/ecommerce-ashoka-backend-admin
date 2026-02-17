@@ -1,5 +1,5 @@
-const { Category } = require('../models');
-const { Op } = require('sequelize');
+const { Category, Product } = require('../models');
+const { Op, fn, col } = require('sequelize');
 
 exports.createCategory = async (req, res) => {
   try {
@@ -47,16 +47,33 @@ exports.getAllCategories = async (req, res) => {
 
     const { count, rows } = await Category.findAndCountAll({
       where: whereClause,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10),
       order: [['createdAt', 'DESC']]
+    });
+
+    const productCounts = await Product.findAll({
+      attributes: ['category_id', [fn('COUNT', col('id')), 'product_count']],
+      group: ['category_id']
+    });
+
+    const countsMap = {};
+    productCounts.forEach((item) => {
+      const categoryId = item.category_id;
+      const value = item.get('product_count');
+      countsMap[categoryId] = typeof value === 'string' ? parseInt(value, 10) : Number(value) || 0;
+    });
+
+    rows.forEach((cat) => {
+      const countValue = countsMap[cat.id] || 0;
+      cat.setDataValue('product_count', countValue);
     });
 
     res.json({
       categories: rows,
       total: count,
       totalPages: Math.ceil(count / limit),
-      currentPage: parseInt(page)
+      currentPage: parseInt(page, 10)
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
