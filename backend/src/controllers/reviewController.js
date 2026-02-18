@@ -1,4 +1,4 @@
-const { Review, Product, User, Wholesaler } = require('../models');
+const { Review, Product, User, Wholesaler, Order, OrderItem } = require('../models');
 const { Op, fn, col } = require('sequelize');
 
 exports.createReview = async (req, res) => {
@@ -17,10 +17,35 @@ exports.createReview = async (req, res) => {
 
     const userId = req.user.id;
     const userType = req.userType;
-    const identity = userType === 'wholesaler' ? { wholesaler_id: userId } : { customer_id: userId };
+    const identity =
+      userType === 'wholesaler' ? { wholesaler_id: userId } : { customer_id: userId };
+
+    const orderOwnerClause =
+      userType === 'wholesaler' ? { wholesaler_id: userId } : { customer_id: userId };
+
+    const hasCompletedOrder = await Order.findOne({
+      where: {
+        ...orderOwnerClause,
+        status: 'delivered',
+      },
+      include: [
+        {
+          model: OrderItem,
+          as: 'items',
+          where: { product_id },
+          required: true,
+        },
+      ],
+    });
+
+    if (!hasCompletedOrder) {
+      return res.status(403).json({
+        message: 'You can only review a product after an order containing it is delivered.',
+      });
+    }
 
     const existing = await Review.findOne({
-      where: { product_id, ...identity }
+      where: { product_id, ...identity },
     });
     if (existing) {
       return res.status(409).json({ message: 'Review already exists for this product' });
