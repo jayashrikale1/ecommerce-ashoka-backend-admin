@@ -1,5 +1,5 @@
 const { Review, Product, User, Wholesaler } = require('../models');
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 
 exports.createReview = async (req, res) => {
   try {
@@ -46,22 +46,36 @@ exports.getProductReviews = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
+    const whereClause = {
+      product_id: id,
+      status: { [Op.ne]: 'rejected' }
+    };
+
     const { count, rows } = await Review.findAndCountAll({
-      where: { product_id: id, status: 'approved' },
+      where: whereClause,
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['created_at', 'DESC']],
       include: [
-        { model: User, as: 'customer', attributes: ['id', 'name'] },
-        { model: Wholesaler, as: 'wholesaler', attributes: ['id', 'business_name'] }
+        { model: User, as: 'customer', attributes: ['id', 'name', 'email', 'phone'] },
+        { model: Wholesaler, as: 'wholesaler', attributes: ['id', 'name', 'business_name', 'email', 'phone'] }
       ]
     });
+
+    const aggregate = await Review.findOne({
+      where: whereClause,
+      attributes: [[fn('AVG', col('rating')), 'avgRating']],
+    });
+
+    const avgRaw = aggregate && aggregate.get('avgRating');
+    const averageRating = avgRaw !== null && avgRaw !== undefined ? Number(avgRaw) : null;
 
     res.status(200).json({
       reviews: rows,
       totalPages: Math.ceil(count / limit),
       currentPage: parseInt(page),
-      totalReviews: count
+      totalReviews: count,
+      averageRating,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

@@ -1,8 +1,152 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { Order, Cart, CartItem, Product, OrderItem, Coupon } = require('../models');
+const nodemailer = require('nodemailer');
+const { Order, Cart, CartItem, Product, OrderItem, Coupon, User, Wholesaler } = require('../models');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+
+const createEmailTransport = () => {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '0', 10);
+  const user = process.env.SMTP_USER || process.env.MAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+
+  if (host && port && user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
+  }
+
+  return nodemailer.createTransport({
+    streamTransport: true,
+    newline: 'unix',
+    buffer: true,
+  });
+};
+
+const sendOrderConfirmationEmail = async (orderId) => {
+  try {
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          as: 'items',
+        },
+        { model: User, as: 'customer', attributes: ['name', 'email'] },
+        { model: Wholesaler, as: 'wholesaler', attributes: ['business_name', 'email'] },
+      ],
+    });
+
+    if (!order) {
+      return;
+    }
+
+    const recipientEmail = order.customer?.email || order.wholesaler?.email;
+    if (!recipientEmail) {
+      return;
+    }
+
+    const recipientName =
+      order.customer?.name || order.wholesaler?.business_name || 'Customer';
+
+    const subtotal = Number(order.total_amount || 0) + Number(order.discount_amount || 0);
+    const discount = Number(order.discount_amount || 0);
+    const total = Number(order.total_amount || 0);
+    const dateStr = new Date(order.created_at).toLocaleString();
+    const paymentMethod =
+      (order.payment_method || 'online').toLowerCase() === 'cod'
+        ? 'Cash on Delivery'
+        : 'Online Payment';
+
+    const itemsRows = (order.items || [])
+      .map((it) => {
+        const price = Number(it.price || 0);
+        const lineTotal = price * it.quantity;
+        return `
+          <tr>
+            <td style="padding:6px 8px;border-bottom:1px solid #eee;">${it.product_name}</td>
+            <td style="padding:6px 8px;text-align:center;border-bottom:1px solid #eee;">${it.quantity}</td>
+            <td style="padding:6px 8px;text-align:right;border-bottom:1px solid #eee;">₹${price.toFixed(
+              2,
+            )}</td>
+            <td style="padding:6px 8px;text-align:right;border-bottom:1px solid #eee;">₹${lineTotal.toFixed(
+              2,
+            )}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const text = [
+      `Dear ${recipientName},`,
+      '',
+      `Thank you for your order #${order.id}. Your online payment was successful.`,
+      `Date: ${dateStr}`,
+      `Total: ₹${total.toFixed(2)}`,
+      `Payment Method: ${paymentMethod}`,
+      `Status: ${order.status}`,
+      '',
+      'We will notify you when your order is processed.',
+      '',
+      'Regards,',
+      'Ashoka',
+    ].join('\n');
+
+    const html = `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#222;line-height:1.5;">
+        <p>Dear ${recipientName},</p>
+        <p>Thank you for your order <strong>#${order.id}</strong>. Your online payment was successful.</p>
+        <p>
+          <strong>Date:</strong> ${dateStr}<br/>
+          <strong>Payment Method:</strong> ${paymentMethod}<br/>
+          <strong>Status:</strong> ${order.status}<br/>
+        </p>
+        <h4 style="margin-top:16px;margin-bottom:8px;">Order Summary</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;">Product</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1px solid #ccc;">Qty</th>
+              <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ccc;">Price</th>
+              <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ccc;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+        <div style="margin-top:12px;">
+          <div><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</div>
+          <div><strong>Discount:</strong> -₹${discount.toFixed(2)}</div>
+          <div><strong>Grand Total:</strong> ₹${total.toFixed(2)}</div>
+        </div>
+        <p style="margin-top:16px;">
+          We will process your order soon. If you have any questions, reply to this email.
+        </p>
+        <p>Regards,<br/>Ashoka</p>
+      </div>
+    `;
+
+    const transport = createEmailTransport();
+    const from =
+      process.env.FROM_EMAIL ||
+      process.env.ADMIN_EMAIL ||
+      'no-reply@ecommerce-ashoka.local';
+
+    await transport.sendMail({
+      from,
+      to: recipientEmail,
+      subject: `Order #${order.id} payment confirmed`,
+      text,
+      html,
+    });
+  } catch (err) {
+    console.error('Order confirmation email (payment) error:', err);
+  }
+};
 
 const isValidRazorpayValue = (value) =>
   typeof value === 'string' &&
@@ -256,7 +400,6 @@ exports.verifyPayment = async (req, res) => {
       .digest('hex');
 
     if (expectedSignature === razorpay_signature) {
-      // Payment successful
       const order = await Order.findByPk(order_id);
       if (!order) {
         return res.status(404).json({ message: 'Order not found' });
@@ -268,6 +411,8 @@ exports.verifyPayment = async (req, res) => {
       // order.status could stay 'pending' (processing) or move to 'processing'
       
       await order.save();
+
+      sendOrderConfirmationEmail(order.id);
 
       res.status(200).json({ message: 'Payment verified successfully', order_id: order.id });
     } else {
