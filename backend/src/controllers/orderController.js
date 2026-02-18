@@ -299,7 +299,8 @@ exports.getMyOrders = async (req, res) => {
       include: [
         {
           model: OrderItem,
-          as: 'items'
+          as: 'items',
+          include: [{ model: Product, as: 'product', include: [{ model: ProductImage, as: 'images' }] }]
         }
       ]
     });
