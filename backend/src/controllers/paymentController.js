@@ -95,38 +95,124 @@ const sendOrderConfirmationEmail = async (orderId) => {
       'Ashoka',
     ].join('\n');
 
+    const frontendBase =
+      process.env.FRONTEND_BASE_URL ||
+      process.env.STORE_FRONT_URL ||
+      'https://www.example.com';
+
+    const orderUrl = `${frontendBase.replace(/\/+$/, '')}/orders`;
+
     const html = `
-      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#222;line-height:1.5;">
-        <p>Dear ${recipientName},</p>
-        <p>Thank you for your order <strong>#${order.id}</strong>. Your online payment was successful.</p>
-        <p>
-          <strong>Date:</strong> ${dateStr}<br/>
-          <strong>Payment Method:</strong> ${paymentMethod}<br/>
-          <strong>Status:</strong> ${order.status}<br/>
-        </p>
-        <h4 style="margin-top:16px;margin-bottom:8px;">Order Summary</h4>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr>
-              <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;">Product</th>
-              <th style="text-align:center;padding:6px 8px;border-bottom:1px solid #ccc;">Qty</th>
-              <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ccc;">Price</th>
-              <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ccc;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRows}
-          </tbody>
+      <div style="margin:0;padding:24px;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#111827;line-height:1.6;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width:640px;margin:0 auto;">
+          <tr>
+            <td>
+              <div style="text-align:center;margin-bottom:16px;color:#6b7280;font-size:12px;">
+                Payment confirmation from <span style="font-weight:600;color:#111827;">Ashoka</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(15,23,42,0.08);border:1px solid #e5e7eb;">
+                <div style="background:linear-gradient(90deg,#15803d,#22c55e);padding:18px 24px;color:#f9fafb;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+                    <div style="font-size:18px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;">
+                      Ashoka
+                    </div>
+                    <div style="text-align:right;margin-top:6px;font-size:12px;">
+                      <div style="font-weight:600;">Payment Successful</div>
+                      <div style="opacity:0.9;">Order #${order.id}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="padding:24px 24px 8px 24px;">
+                  <p style="margin:0 0 8px 0;font-size:14px;color:#111827;">
+                    Dear <span style="font-weight:600;">${recipientName}</span>,
+                  </p>
+                  <p style="margin:0 0 12px 0;font-size:14px;color:#374151;">
+                    Thank you for your payment. Your order
+                    <span style="font-weight:600;">#${order.id}</span> has been received and is now being processed.
+                  </p>
+
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin-top:16px;border-collapse:collapse;font-size:13px;">
+                    <tr>
+                      <td style="padding:8px 0;color:#6b7280;width:35%;">Order date</td>
+                      <td style="padding:8px 0;color:#111827;font-weight:500;">${dateStr}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:4px 0;color:#6b7280;">Payment method</td>
+                      <td style="padding:4px 0;color:#111827;font-weight:500;">${paymentMethod}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:4px 0;color:#6b7280;">Status</td>
+                      <td style="padding:4px 0;">
+                        <span style="display:inline-block;padding:2px 10px;border-radius:999px;background-color:#ecfdf3;color:#166534;font-size:12px;font-weight:600;text-transform:capitalize;">
+                          ${order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="padding:8px 24px 20px 24px;">
+                  <div style="margin-top:8px;margin-bottom:8px;font-size:14px;font-weight:600;color:#111827;">
+                    Order Summary
+                  </div>
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;font-size:13px;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+                    <thead style="background-color:#f9fafb;">
+                      <tr>
+                        <th align="left" style="padding:8px 10px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Product</th>
+                        <th align="center" style="padding:8px 10px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Qty</th>
+                        <th align="right" style="padding:8px 10px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Price</th>
+                        <th align="right" style="padding:8px 10px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${itemsRows}
+                    </tbody>
+                  </table>
+
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin-top:16px;font-size:13px;">
+                    <tr>
+                      <td align="right" style="padding:2px 0;color:#6b7280;">Subtotal</td>
+                      <td align="right" style="padding:2px 0;color:#111827;font-weight:500;width:120px;">₹${subtotal.toFixed(
+                        2,
+                      )}</td>
+                    </tr>
+                    <tr>
+                      <td align="right" style="padding:2px 0;color:#6b7280;">Discount</td>
+                      <td align="right" style="padding:2px 0;color:#16a34a;font-weight:500;">-₹${discount.toFixed(
+                        2,
+                      )}</td>
+                    </tr>
+                    <tr>
+                      <td align="right" style="padding:6px 0;color:#111827;font-weight:700;border-top:1px solid #e5e7eb;">Grand Total</td>
+                      <td align="right" style="padding:6px 0;color:#111827;font-weight:700;border-top:1px solid #e5e7eb;">₹${total.toFixed(
+                        2,
+                      )}</td>
+                    </tr>
+                  </table>
+
+                  <div style="margin-top:20px;text-align:center;">
+                    <a href="${orderUrl}" style="display:inline-block;padding:10px 22px;border-radius:999px;background:linear-gradient(90deg,#15803d,#22c55e);color:#f9fafb;text-decoration:none;font-size:13px;font-weight:600;">
+                      View your orders
+                    </a>
+                  </div>
+
+                  <p style="margin-top:18px;margin-bottom:0;font-size:12px;color:#6b7280;text-align:center;">
+                    We will process your order soon. If you have any questions, reply to this email.
+                  </p>
+                </div>
+              </div>
+
+              <div style="text-align:center;margin-top:16px;font-size:11px;color:#9ca3af;">
+                © ${new Date().getFullYear()} Ashoka. All rights reserved.
+              </div>
+            </td>
+          </tr>
         </table>
-        <div style="margin-top:12px;">
-          <div><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</div>
-          <div><strong>Discount:</strong> -₹${discount.toFixed(2)}</div>
-          <div><strong>Grand Total:</strong> ₹${total.toFixed(2)}</div>
-        </div>
-        <p style="margin-top:16px;">
-          We will process your order soon. If you have any questions, reply to this email.
-        </p>
-        <p>Regards,<br/>Ashoka</p>
       </div>
     `;
 
