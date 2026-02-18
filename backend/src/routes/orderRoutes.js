@@ -42,12 +42,58 @@ router.post('/place', cartAuthMiddleware, orderController.placeOrder);
 
 /**
  * @swagger
+ * /api/orders/instant:
+ *   post:
+ *     summary: Place a single product instant purchase order
+ *     tags: [User, Wholesaler]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - product_id
+ *               - quantity
+ *               - shipping_address
+ *             properties:
+ *               product_id:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *               shipping_address:
+ *                 type: string
+ *               payment_method:
+ *                 type: string
+ *                 default: cod
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Order placed successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/instant', cartAuthMiddleware, orderController.instantPurchase);
+
+/**
+ * @swagger
  * /api/orders:
  *   get:
  *     summary: Get my order history
  *     tags: [User, Wholesaler]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema:
+ *           type: string
+ *           enum: [recent, history]
  *     responses:
  *       200:
  *         description: List of orders
@@ -79,6 +125,58 @@ router.get('/', cartAuthMiddleware, orderController.getMyOrders);
  *         description: Unauthorized
  */
 router.get('/:id', cartAuthMiddleware, orderController.getOrderDetails);
+
+/**
+ * @swagger
+ * /api/orders/{id}/invoice:
+ *   get:
+ *     summary: Get invoice HTML for my order
+ *     tags: [User, Wholesaler]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Invoice HTML
+ *       400:
+ *         description: Invoice not available
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Order not found
+ */
+router.get('/:id/invoice', cartAuthMiddleware, orderController.getOrderInvoice);
+
+/**
+ * @swagger
+ * /api/orders/{id}/cancel:
+ *   post:
+ *     summary: Cancel my order
+ *     tags: [User, Wholesaler]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Order cancelled
+ *       400:
+ *         description: Cannot cancel order
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Order not found
+ */
+router.post('/:id/cancel', cartAuthMiddleware, orderController.cancelMyOrder);
 
 // --- Admin Routes ---
 
