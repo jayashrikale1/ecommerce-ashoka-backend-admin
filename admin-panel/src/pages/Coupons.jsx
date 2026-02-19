@@ -132,7 +132,7 @@ const Coupons = () => {
           </Button>
         </div>
 
-        <Form className="mb-4" onSubmit={(e) => { e.preventDefault(); setPage(1); fetchCoupons(); }}>
+        <Form className="mb-4">
           <Row>
             <Col md={8} lg={6}>
               <div className="d-flex gap-2">
@@ -142,7 +142,6 @@ const Coupons = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Button type="submit" variant="outline-primary">Search</Button>
               </div>
             </Col>
           </Row>

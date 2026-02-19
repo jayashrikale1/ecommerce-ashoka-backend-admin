@@ -17,12 +17,9 @@ const Categories = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
   const fetchCategories = async (query = '', page = 1) => {
     try {
+      setLoading(true);
       const response = await api.get('/categories', { params: { search: query, page, limit: 10 } });
       setCategories(response.data.categories);
       setTotalPages(response.data.totalPages);
@@ -34,13 +31,12 @@ const Categories = () => {
     }
   };
 
+  useEffect(() => {
+    fetchCategories(searchQuery, 1);
+  }, [searchQuery]);
+
   const handlePageChange = (page) => {
     fetchCategories(searchQuery, page);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchCategories(searchQuery, 1);
   };
 
   const handleDelete = async (id) => {
@@ -118,7 +114,7 @@ const Categories = () => {
           </Button>
         </div>
 
-        <Form onSubmit={handleSearch} className="mb-4">
+        <Form className="mb-4">
             <Row>
                 <Col md={8} lg={6}>
                     <div className="d-flex gap-2">
@@ -128,7 +124,6 @@ const Categories = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <Button type="submit" variant="outline-primary">Search</Button>
                     </div>
                 </Col>
             </Row>

@@ -26,12 +26,9 @@ const Users = () => {
   const [editStatus, setEditStatus] = useState('active');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async (query = '', page = 1) => {
     try {
+      setLoading(true);
       const params = { search: query, page, limit: 10 };
       if (statusFilter) params.status = statusFilter;
       if (verifiedFilter) params.verified = verifiedFilter;
@@ -48,13 +45,12 @@ const Users = () => {
     }
   };
 
+  useEffect(() => {
+    fetchUsers(searchQuery, 1);
+  }, [searchQuery, statusFilter, verifiedFilter, fromDate, toDate]);
+
   const handlePageChange = (page) => {
     fetchUsers(searchQuery, page);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchUsers(searchQuery, 1);
   };
   const handleExport = async () => {
     try {
@@ -131,7 +127,7 @@ const Users = () => {
         ) : (
         <Card className="shadow-sm border-0 rounded-3">
           <Card.Header className="bg-white py-3 border-bottom-0">
-            <Form onSubmit={handleSearch}>
+            <Form>
                 <Row className="g-2 align-items-center">
                     <Col xs={12} md={6} lg={4}>
                         <div className="position-relative">
@@ -169,9 +165,6 @@ const Users = () => {
                     </Col>
                     <Col xs={6} md={3} lg={2}>
                       <Form.Control type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-                    </Col>
-                     <Col xs="auto">
-                        <Button type="submit" variant="primary">Search</Button>
                     </Col>
                 </Row>
             </Form>

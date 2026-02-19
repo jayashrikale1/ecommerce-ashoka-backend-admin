@@ -21,10 +21,6 @@ const Wholesalers = () => {
   const [currentWholesaler, setCurrentWholesaler] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchWholesalers();
-  }, []);
-
   const fetchWholesalers = async (query = '', status = '', page = 1) => {
     try {
       setLoading(true);
@@ -45,19 +41,17 @@ const Wholesalers = () => {
     }
   };
 
+  useEffect(() => {
+    fetchWholesalers(searchQuery, statusFilter, 1);
+  }, [searchQuery, statusFilter, verifiedFilter, fromDate, toDate]);
+
   const handlePageChange = (page) => {
     fetchWholesalers(searchQuery, statusFilter, page);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchWholesalers(searchQuery, statusFilter, 1);
   };
 
   const handleFilterChange = (e) => {
     const value = e.target.value;
     setStatusFilter(value);
-    fetchWholesalers(searchQuery, value, 1);
   };
   const handleExport = async () => {
     try {
@@ -120,7 +114,7 @@ const Wholesalers = () => {
 
         <Card className="shadow-sm border-0 rounded-3 mb-4">
             <Card.Header className="bg-white py-3 border-bottom-0">
-                <Form onSubmit={handleSearch}>
+                <Form>
                     <Row className="g-2 align-items-center">
                         <Col xs={12} md={5}>
                              <div className="position-relative">
@@ -158,11 +152,7 @@ const Wholesalers = () => {
                         <Col xs={6} md={3}>
                             <Form.Control type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
                         </Col>
-                        <Col xs={12} md={2}>
-                            <Button type="submit" variant="primary" className="w-100">
-                                Search
-                            </Button>
-                        </Col>
+                        <Col xs={12} md={2}></Col>
                     </Row>
                 </Form>
             </Card.Header>

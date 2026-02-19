@@ -33,13 +33,9 @@ const Products = () => {
     }
   });
 
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
-
   const fetchProducts = async (query = '', page = 1) => {
     try {
+      setLoading(true);
       const response = await api.get('/products', { params: { search: query, page, limit: 10 } });
       setProducts(response.data.products);
       setTotalPages(response.data.totalPages);
@@ -51,13 +47,16 @@ const Products = () => {
     }
   };
 
+  useEffect(() => {
+    fetchProducts(searchQuery, 1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   const handlePageChange = (page) => {
     fetchProducts(searchQuery, page);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchProducts(searchQuery, 1);
   };
 
   const fetchCategories = async () => {
@@ -237,7 +236,7 @@ const Products = () => {
           </Button>
         </div>
 
-        <Form onSubmit={handleSearch} className="mb-4">
+        <Form className="mb-4">
             <Row>
                 <Col md={8} lg={6}>
                     <div className="d-flex gap-2">
@@ -247,7 +246,6 @@ const Products = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <Button type="submit" variant="outline-primary">Search</Button>
                     </div>
                 </Col>
             </Row>
