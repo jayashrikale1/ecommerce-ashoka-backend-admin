@@ -43,6 +43,25 @@ exports.getCoupons = async (req, res) => {
   }
 };
 
+exports.getActiveCouponsPublic = async (req, res) => {
+  try {
+    const now = new Date();
+    const coupons = await Coupon.findAll({
+      where: {
+        active: true,
+        [Op.and]: [
+          { [Op.or]: [{ start_date: null }, { start_date: { [Op.lte]: now } }] },
+          { [Op.or]: [{ end_date: null }, { end_date: { [Op.gte]: now } }] }
+        ]
+      },
+      order: [['created_at', 'DESC']]
+    });
+    res.json({ coupons });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 exports.updateCoupon = async (req, res) => {
   try {
     const coupon = await Coupon.findByPk(req.params.id);
@@ -142,4 +161,3 @@ exports.validateCoupon = async (req, res) => {
     res.status(500).json({ valid: false, message: 'Server error', error: error.message });
   }
 };
-

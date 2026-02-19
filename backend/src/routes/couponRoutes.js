@@ -4,6 +4,8 @@ const couponController = require('../controllers/couponController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const cartAuthMiddleware = require('../middlewares/cartAuthMiddleware');
 
+router.get('/public/active', couponController.getActiveCouponsPublic);
+
 /**
  * Admin: Create coupon
  */
@@ -30,4 +32,3 @@ router.delete('/:id', authMiddleware, couponController.deleteCoupon);
 router.post('/validate', cartAuthMiddleware, couponController.validateCoupon);
 
 module.exports = router;
-
