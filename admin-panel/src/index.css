@@ -3,7 +3,7 @@ body {
   background-color: #f8f9fa;
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  overflow: hidden; /* Prevent body scroll since we handle it in Layout */
+  overflow: hidden;
 }
 
 /* Custom Scrollbar */
@@ -147,6 +147,18 @@ body {
   justify-content: center;
   font-weight: 600;
   font-size: 14px;
+}
+
+@media (max-width: 575.98px) {
+  .user-profile-badge {
+    padding: 6px 10px;
+  }
+
+  .avatar-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
 }
 
 /* Custom Utilities */

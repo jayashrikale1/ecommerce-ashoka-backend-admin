@@ -130,7 +130,7 @@ const Dashboard = () => {
 
         {/* Recent Orders Section */}
         <div className="mt-5">
-          <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
              <h3 className="fw-bold text-dark m-0">Recent Orders</h3>
              <button className="btn btn-outline-primary btn-sm" onClick={() => navigate('/orders')}>View All</button>
           </div>

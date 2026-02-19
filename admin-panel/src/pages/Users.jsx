@@ -111,7 +111,7 @@ const Users = () => {
   return (
     <Layout>
       <Container fluid className="p-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
           <h2 className="mb-0">Registered Users</h2>
           <div>
             <Button variant="outline-secondary" onClick={handleExport}>Export CSV</Button>

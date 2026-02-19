@@ -32,8 +32,8 @@ const Layout = ({ children }) => {
       </Offcanvas>
 
       <div className="flex-grow-1 d-flex flex-column h-100 overflow-hidden" style={{ minWidth: 0 }}>
-        <Navbar className="navbar-custom px-3 px-md-4 justify-content-between">
-            <div className="d-flex align-items-center">
+        <Navbar className="navbar-custom px-3 px-md-4 justify-content-between flex-wrap">
+            <div className="d-flex align-items-center mb-2 mb-md-0">
                 <Button 
                     variant="link" 
                     className="d-lg-none p-0 me-3 text-dark" 
@@ -48,7 +48,7 @@ const Layout = ({ children }) => {
                 </div>
             </div>
             
-            <div className="d-flex align-items-center">
+            <div className="d-flex align-items-center ms-auto">
                 <div className="user-profile-badge d-flex align-items-center gap-3">
                     <div className="d-none d-sm-block text-end">
                         <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>{user?.name || 'Admin User'}</div>
