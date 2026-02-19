@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 import { Container, Row, Col, Card, Spinner, Table, Badge } from 'react-bootstrap';
-import { ShoppingBag, Users, Layers, TrendingUp, AlertCircle, ShoppingCart, Briefcase } from 'lucide-react';
+import { ShoppingBag, Users, Layers, TrendingUp, ShoppingCart, Briefcase } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,9 +68,8 @@ const Dashboard = () => {
       <Container fluid className="p-4">
         <h2 className="mb-4 fw-bold text-dark">Dashboard Overview</h2>
         
-        {/* Stats Row 1 */}
         <Row className="g-4 mb-4">
-          <Col md={3} sm={6}>
+          <Col md={4} sm={6}>
             <StatCard 
               title="Total Revenue" 
               value={`₹${stats.totalRevenue.toLocaleString()}`} 
@@ -78,7 +77,7 @@ const Dashboard = () => {
               color="success" 
             />
           </Col>
-          <Col md={3} sm={6}>
+          <Col md={4} sm={6}>
             <StatCard 
               title="Total Orders" 
               value={stats.totalOrders} 
@@ -87,23 +86,13 @@ const Dashboard = () => {
               link="/orders"
             />
           </Col>
-          <Col md={3} sm={6}>
+          <Col md={4} sm={6}>
             <StatCard 
               title="Products" 
               value={stats.totalProducts} 
               icon={ShoppingBag} 
               color="info" 
               link="/products"
-            />
-          </Col>
-           <Col md={3} sm={6}>
-            <StatCard 
-              title="Low Stock" 
-              value={stats.lowStockCount} 
-              icon={AlertCircle} 
-              color="danger" 
-              link="/products"
-              subValue={stats.lowStockCount > 0 ? "Items need attention" : "Stock looks good"}
             />
           </Col>
         </Row>
@@ -166,7 +155,7 @@ const Dashboard = () => {
                        stats.recentOrders.map((order, index) => (
                          <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/orders')}>
                            <td className="ps-4 text-muted">{index + 1}</td>
-                           <td className="ps-4 fw-medium">#{order.id}</td>
+                           <td className="ps-4 fw-medium">{order.display_order_id || order.public_id || `#${order.id}`}</td>
                            <td>
                              {order.customer ? order.customer.name : (order.wholesaler ? order.wholesaler.business_name : 'Unknown')}
                            </td>

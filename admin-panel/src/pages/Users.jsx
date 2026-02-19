@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { Trash2, Eye } from 'lucide-react';
-import { Container, Row, Col, Card, Table, Button, Form, OverlayTrigger, Tooltip, Badge, Modal } from 'react-bootstrap';
+import { Trash2, Eye, Edit as EditIcon } from 'lucide-react';
+import { Container, Row, Col, Card, Table, Button, Form, OverlayTrigger, Tooltip, Badge, Modal, InputGroup } from 'react-bootstrap';
 import PaginationComponent from '../components/PaginationComponent';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,10 +17,13 @@ const Users = () => {
   const [toDate, setToDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [showLogs, setShowLogs] = useState(false);
-  const [logsLoading, setLogsLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [logs, setLogs] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editStatus, setEditStatus] = useState('active');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,18 +79,35 @@ const Users = () => {
       toast.error('Failed to export users');
     }
   };
-  const openLogs = async (user) => {
-    setCurrentUser(user);
-    setShowLogs(true);
-    setLogs([]);
-    setLogsLoading(true);
+
+  const openEdit = (user) => {
+    setEditingUser(user);
+    setEditName(user.name || '');
+    setEditEmail(user.email || '');
+    setEditPhone(user.phone || '');
+    setEditStatus(user.status || 'active');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setSavingEdit(true);
     try {
-      const resp = await api.get('/communications/admin', { params: { entityType: 'user', entityId: user.id, limit: 20 } });
-      setLogs(resp.data.logs || []);
-    } catch {
-      toast.error('Failed to load logs');
+      await api.put(`/users/admin/${editingUser.id}`, {
+        name: editName || null,
+        email: editEmail || null,
+        phone: editPhone || null,
+        status: editStatus || null
+      });
+      toast.success('User updated successfully');
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchUsers(searchQuery, currentPage);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update user');
     } finally {
-      setLogsLoading(false);
+      setSavingEdit(false);
     }
   };
 
@@ -165,19 +185,25 @@ const Users = () => {
                     <th className="px-4 py-3 border-0">Name</th>
                     <th className="px-4 py-3 border-0">Email</th>
                     <th className="px-4 py-3 border-0">Phone</th>
+                    <th className="px-4 py-3 border-0">Joined</th>
                     <th className="px-4 py-3 border-0">Status</th>
                     <th className="px-4 py-3 border-0 text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="border-top-0">
-                  {users.map((user, index) => (
+                  {users.map((user, index) => {
+                    const joined = user.created_at || user.createdAt;
+                    return (
                     <tr key={user.id}>
                       <td className="px-4 py-3 text-muted">{(currentPage - 1) * 10 + index + 1}</td>
                       <td className="px-4 py-3 fw-bold text-dark">{user.name || '-'}</td>
                       <td className="px-4 py-3 text-secondary">{user.email || '-'}</td>
                       <td className="px-4 py-3 text-secondary">{user.phone || '-'}</td>
+                      <td className="px-4 py-3 text-secondary">
+                        {joined ? new Date(joined).toLocaleDateString() : '-'}
+                      </td>
                       <td className="px-4 py-3">
-                        <Badge bg={user.status === 'active' ? 'success' : 'secondary'} pill className="px-3 py-2 fw-normal">
+                        <Badge bg={user.status === 'active' ? 'success' : user.status === 'blocked' ? 'danger' : 'secondary'} pill className="px-3 py-2 fw-normal">
                             {user.status}
                         </Badge>
                       </td>
@@ -195,15 +221,15 @@ const Users = () => {
                             </Button>
                           </OverlayTrigger>
 
-                          <OverlayTrigger placement="top" overlay={<Tooltip>Logs</Tooltip>}>
+                          <OverlayTrigger placement="top" overlay={<Tooltip>Edit User</Tooltip>}>
                             <Button
                               variant="light"
-                              className="btn-icon text-info rounded-circle border-0 shadow-sm"
+                              className="btn-icon text-success rounded-circle border-0 shadow-sm"
                               size="sm"
                               style={{ width: '32px', height: '32px' }}
-                              onClick={() => openLogs(user)}
+                              onClick={() => openEdit(user)}
                             >
-                              <Eye size={16} />
+                              <EditIcon size={16} />
                             </Button>
                           </OverlayTrigger>
                           <OverlayTrigger placement="top" overlay={<Tooltip>Delete User</Tooltip>}>
@@ -219,10 +245,10 @@ const Users = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                   {users.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="text-center py-5 text-muted">
+                      <td colSpan="7" className="text-center py-5 text-muted">
                         <div className="d-flex flex-column align-items-center">
                             <i className="bi bi-people fs-1 mb-3 opacity-50"></i>
                             <p className="mb-0">No users found.</p>
@@ -246,53 +272,55 @@ const Users = () => {
           </div>
         )}
       </Container>
-      {/* Logs Modal */}
-      <Modal show={showLogs} onHide={() => setShowLogs(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Communication Logs {currentUser ? `- ${currentUser.name || currentUser.email || currentUser.phone}` : ''}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {logsLoading ? (
-            <div className="text-center py-4">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <Table hover className="mb-0">
-                <thead className="bg-light text-uppercase small text-muted">
-                  <tr>
-                    <th>Channel</th>
-                    <th>Subject</th>
-                    <th>Message</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map(l => (
-                    <tr key={l.id}>
-                      <td>{l.channel}</td>
-                      <td>{l.subject || '-'}</td>
-                      <td style={{ maxWidth: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.message || '-'}</td>
-                      <td><Badge bg={l.status === 'sent' ? 'success' : 'danger'}>{l.status}</Badge></td>
-                      <td>{new Date(l.created_at).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                  {logs.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="text-center py-3 text-muted">No logs</td>
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowLogs(false)}>Close</Button>
-        </Modal.Footer>
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
+        <Form onSubmit={handleSaveEdit}>
+          <Modal.Header closeButton>
+            <Modal.Title>Edit User Details</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Name"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="Email"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Phone</Form.Label>
+              <Form.Control
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="Phone"
+              />
+            </Form.Group>
+            <Form.Group className="mb-0">
+              <Form.Label>Status</Form.Label>
+              <Form.Select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="blocked">Blocked</option>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={savingEdit}>
+              {savingEdit ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </Layout>
   );

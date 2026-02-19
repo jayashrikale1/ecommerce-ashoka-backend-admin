@@ -1,6 +1,23 @@
 const { Product, Category, Order, User, Wholesaler } = require('../models');
 const { Op } = require('sequelize');
 
+const buildPublicOrderId = (order) => {
+  if (!order || !order.id) return null;
+  const numericId = Number(order.id);
+  if (!Number.isFinite(numericId) || numericId <= 0) return String(order.id);
+  const padded = String(numericId).padStart(6, '0');
+
+  const hasWholesaler =
+    (order.wholesaler_id && Number(order.wholesaler_id) > 0) ||
+    (order.wholesaler && (order.wholesaler.id || order.wholesaler.business_name));
+
+  if (hasWholesaler) {
+    return `W${padded}`;
+  }
+
+  return `U${padded}`;
+};
+
 exports.getDashboardStats = async (req, res) => {
   try {
     const productCount = await Product.count();
@@ -29,13 +46,21 @@ exports.getDashboardStats = async (req, res) => {
     });
 
     // Recent 5 Orders
-    const recentOrders = await Order.findAll({
+    const recentOrdersRaw = await Order.findAll({
       limit: 5,
       order: [['created_at', 'DESC']],
       include: [
         { model: User, as: 'customer', attributes: ['name'] },
         { model: Wholesaler, as: 'wholesaler', attributes: ['business_name'] }
       ]
+    });
+
+    const recentOrders = recentOrdersRaw.map((o) => {
+      const plain = o.toJSON();
+      return {
+        ...plain,
+        display_order_id: buildPublicOrderId(plain),
+      };
     });
 
     res.json({

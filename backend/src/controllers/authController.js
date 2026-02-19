@@ -75,6 +75,14 @@ exports.changePassword = async (req, res) => {
         const { currentPassword, newPassword } = req.body;
         const adminId = req.admin.id;
 
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Current password and new password are required' });
+        }
+
+        if (currentPassword === newPassword) {
+            return res.status(400).json({ message: 'The current password and new password must be different.' });
+        }
+
         const admin = await AdminUser.findByPk(adminId);
         if (!admin) {
             return res.status(404).json({ message: 'Admin not found' });

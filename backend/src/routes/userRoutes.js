@@ -71,5 +71,6 @@ router.put('/profile', userMiddleware, userController.updateProfile);
  */
 router.get('/', authMiddleware, userController.getAllUsers);
 router.get('/admin/export', authMiddleware, userController.exportUsersCsv);
+router.put('/admin/:id', authMiddleware, userController.updateUserByAdmin);
 
 module.exports = router;

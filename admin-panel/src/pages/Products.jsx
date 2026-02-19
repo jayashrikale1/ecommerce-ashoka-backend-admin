@@ -24,7 +24,6 @@ const Products = () => {
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       status: true,
-      stock: 0,
       sku: '',
       name: '',
       description: '',
@@ -93,7 +92,6 @@ const Products = () => {
       description: product.description,
       customer_price: product.customer_price,
       wholesaler_price: product.wholesaler_price,
-      stock: product.stock,
       status: product.status === 'active'
     });
     setShowModal(true);
@@ -118,7 +116,6 @@ const Products = () => {
     formData.append('description', data.description || '');
     formData.append('customer_price', data.customer_price || 0);
     formData.append('wholesaler_price', data.wholesaler_price || 0);
-    formData.append('stock', data.stock || 0);
     formData.append('status', data.status ? 'active' : 'inactive');
 
     if (data.main_image && data.main_image[0]) {
@@ -155,9 +152,8 @@ const Products = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    reset({ 
+    reset({
       status: true,
-      stock: 0,
       sku: '',
       name: '',
       description: '',
@@ -223,9 +219,8 @@ const Products = () => {
             variant="primary"
             onClick={() => {
                 setIsEditing(false);
-                reset({ 
+                reset({
                   status: true,
-                  stock: 0,
                   sku: '',
                   name: '',
                   description: '',
@@ -272,7 +267,6 @@ const Products = () => {
                     <th className="px-4 py-3">SKU</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Customer Price</th>
-                    <th className="px-4 py-3">Stock</th>
                     <th className="px-4 py-3 text-end">Actions</th>
                   </tr>
                 </thead>
@@ -296,9 +290,6 @@ const Products = () => {
                       </td>
                       <td className="px-4 py-3 text-muted align-middle">
                           {product.customer_price ? `₹${product.customer_price}` : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-muted align-middle">
-                          {product.stock || 0}
                       </td>
                       <td className="px-4 py-3 text-end align-middle">
                         <div className="d-flex justify-content-end gap-2">
@@ -403,22 +394,16 @@ const Products = () => {
               </Form.Group>
 
               <Row>
-                  <Col md={4}>
+                  <Col md={6}>
                       <Form.Group className="mb-3">
                           <Form.Label>Customer Price</Form.Label>
                           <Form.Control type="number" step="0.01" {...register('customer_price')} />
                       </Form.Group>
                   </Col>
-                  <Col md={4}>
+                  <Col md={6}>
                       <Form.Group className="mb-3">
                           <Form.Label>Wholesaler Price</Form.Label>
                           <Form.Control type="number" step="0.01" {...register('wholesaler_price')} />
-                      </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                      <Form.Group className="mb-3">
-                          <Form.Label>Stock</Form.Label>
-                          <Form.Control type="number" {...register('stock')} />
                       </Form.Group>
                   </Col>
               </Row>
@@ -593,19 +578,13 @@ const Products = () => {
                                     </Card>
 
                                     <Row className="g-3 mb-4">
-                                        <Col xs={4}>
-                                            <div className="p-2 border rounded bg-white text-center h-100">
-                                                <small className="text-muted d-block text-uppercase" style={{fontSize: '0.7rem'}}>Stock</small>
-                                                <strong className="fs-5">{viewProductData.stock || 0}</strong>
-                                            </div>
-                                        </Col>
-                                        <Col xs={4}>
+                                        <Col xs={6}>
                                             <div className="p-2 border rounded bg-white text-center h-100">
                                                 <small className="text-muted d-block text-uppercase" style={{fontSize: '0.7rem'}}>Created</small>
                                                 <span className="small fw-bold">{(viewProductData.createdAt || viewProductData.created_at) ? new Date(viewProductData.createdAt || viewProductData.created_at).toLocaleDateString() : '-'}</span>
                                             </div>
                                         </Col>
-                                        <Col xs={4}>
+                                        <Col xs={6}>
                                             <div className="p-2 border rounded bg-white text-center h-100">
                                                 <small className="text-muted d-block text-uppercase" style={{fontSize: '0.7rem'}}>Updated</small>
                                                 <span className="small fw-bold">{(viewProductData.updatedAt || viewProductData.updated_at) ? new Date(viewProductData.updatedAt || viewProductData.updated_at).toLocaleDateString() : '-'}</span>

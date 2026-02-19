@@ -131,3 +131,51 @@ exports.exportUsersCsv = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Admin: Update User By Id
+exports.updateUserByAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, phone, status } = req.body;
+
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (email && email !== user.email) {
+            const exists = await User.findOne({ where: { email } });
+            if (exists) {
+                return res.status(400).json({ message: 'Email already in use' });
+            }
+        }
+
+        if (phone && phone !== user.phone) {
+            const exists = await User.findOne({ where: { phone } });
+            if (exists) {
+                return res.status(400).json({ message: 'Phone already in use' });
+            }
+        }
+
+        if (typeof status === 'string' && status.length > 0) {
+            const allowed = ['active', 'inactive', 'blocked'];
+            if (!allowed.includes(status)) {
+                return res.status(400).json({ message: 'Invalid status' });
+            }
+            user.status = status;
+        }
+
+        user.name = typeof name === 'string' && name.length > 0 ? name : user.name;
+        user.email = typeof email === 'string' && email.length > 0 ? email : user.email;
+        user.phone = typeof phone === 'string' && phone.length > 0 ? phone : user.phone;
+
+        await user.save();
+
+        res.json({
+            message: 'User updated successfully',
+            user
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};

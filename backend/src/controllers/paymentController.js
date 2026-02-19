@@ -27,6 +27,23 @@ const createEmailTransport = () => {
   });
 };
 
+const buildPublicOrderId = (order) => {
+  if (!order || !order.id) return null;
+  const numericId = Number(order.id);
+  if (!Number.isFinite(numericId) || numericId <= 0) return String(order.id);
+  const padded = String(numericId).padStart(6, '0');
+
+  const hasWholesaler =
+    (order.wholesaler_id && Number(order.wholesaler_id) > 0) ||
+    (order.wholesaler && (order.wholesaler.id || order.wholesaler.business_name));
+
+  if (hasWholesaler) {
+    return `W${padded}`;
+  }
+
+  return `U${padded}`;
+};
+
 const sendOrderConfirmationEmail = async (orderId) => {
   try {
     const order = await Order.findByPk(orderId, {
@@ -56,6 +73,7 @@ const sendOrderConfirmationEmail = async (orderId) => {
     const discount = Number(order.discount_amount || 0);
     const total = Number(order.total_amount || 0);
     const dateStr = new Date(order.created_at).toLocaleString();
+    const publicId = buildPublicOrderId(order);
     const paymentMethod =
       (order.payment_method || 'online').toLowerCase() === 'cod'
         ? 'Cash on Delivery'
@@ -83,7 +101,7 @@ const sendOrderConfirmationEmail = async (orderId) => {
     const text = [
       `Dear ${recipientName},`,
       '',
-      `Thank you for your order #${order.id}. Your online payment was successful.`,
+      `Thank you for your order ${publicId || `#${order.id}`}. Your online payment was successful.`,
       `Date: ${dateStr}`,
       `Total: ₹${total.toFixed(2)}`,
       `Payment Method: ${paymentMethod}`,
@@ -122,7 +140,7 @@ const sendOrderConfirmationEmail = async (orderId) => {
                     </div>
                     <div style="text-align:right;margin-top:6px;font-size:12px;">
                       <div style="font-weight:600;">Payment Successful</div>
-                      <div style="opacity:0.9;">Order #${order.id}</div>
+                      <div style="opacity:0.9;">Order ${publicId || `#${order.id}`}</div>
                     </div>
                   </div>
                 </div>
@@ -133,7 +151,7 @@ const sendOrderConfirmationEmail = async (orderId) => {
                   </p>
                   <p style="margin:0 0 12px 0;font-size:14px;color:#374151;">
                     Thank you for your payment. Your order
-                    <span style="font-weight:600;">#${order.id}</span> has been received and is now being processed.
+                    <span style="font-weight:600;">${publicId || `#${order.id}`}</span> has been received and is now being processed.
                   </p>
 
                   <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin-top:16px;border-collapse:collapse;font-size:13px;">

@@ -19,9 +19,6 @@ const Wholesalers = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [currentWholesaler, setCurrentWholesaler] = useState(null);
-  const [showLogs, setShowLogs] = useState(false);
-  const [logsLoading, setLogsLoading] = useState(false);
-  const [logs, setLogs] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,8 +55,9 @@ const Wholesalers = () => {
   };
 
   const handleFilterChange = (e) => {
-    setStatusFilter(e.target.value);
-    fetchWholesalers(searchQuery, e.target.value, 1);
+    const value = e.target.value;
+    setStatusFilter(value);
+    fetchWholesalers(searchQuery, value, 1);
   };
   const handleExport = async () => {
     try {
@@ -82,20 +80,6 @@ const Wholesalers = () => {
       }, 500);
     } catch {
       toast.error('Failed to export wholesalers');
-    }
-  };
-  const openLogs = async (wholesaler) => {
-    setCurrentWholesaler(wholesaler);
-    setShowLogs(true);
-    setLogs([]);
-    setLogsLoading(true);
-    try {
-      const resp = await api.get('/communications/admin', { params: { entityType: 'wholesaler', entityId: wholesaler.id, limit: 20 } });
-      setLogs(resp.data.logs || []);
-    } catch {
-      toast.error('Failed to load logs');
-    } finally {
-      setLogsLoading(false);
     }
   };
 
@@ -131,7 +115,6 @@ const Wholesalers = () => {
           <h2 className="mb-0">Wholesaler Management</h2>
           <div className="d-flex gap-2">
             <Button variant="outline-secondary" onClick={handleExport}>Export CSV</Button>
-            <Button variant="outline-warning" onClick={() => { setStatusFilter('pending'); fetchWholesalers(searchQuery, 'pending', 1); }}>Verification Queue</Button>
           </div>
         </div>
 
@@ -159,7 +142,7 @@ const Wholesalers = () => {
                                 <option value="pending">Pending</option>
                                 <option value="approved">Approved</option>
                                 <option value="rejected">Rejected</option>
-                                <option value="blocked">Blocked</option>
+                                <option value="blocked">Unapproved</option>
                             </Form.Select>
                         </Col>
                         <Col xs={12} md={3}>
@@ -201,9 +184,10 @@ const Wholesalers = () => {
                         <th className="px-4 py-3 border-0">Sr No.</th>
                         <th className="px-4 py-3 border-0">Business Name</th>
                         <th className="px-4 py-3 border-0">Contact Person</th>
-                        <th className="px-4 py-3 border-0">Email/Phone</th>
-                        <th className="px-4 py-3 border-0">Status</th>
-                        <th className="px-4 py-3 border-0 text-end">Actions</th>
+        <th className="px-4 py-3 border-0">Email/Phone</th>
+        <th className="px-4 py-3 border-0">Status</th>
+        <th className="px-4 py-3 border-0">Date</th>
+        <th className="px-4 py-3 border-0 text-end">Actions</th>
                     </tr>
                     </thead>
                     <tbody className="border-top-0">
@@ -218,8 +202,11 @@ const Wholesalers = () => {
                         </td>
                         <td className="px-4 py-3">
                             <Badge bg={getStatusBadge(wholesaler.status)} pill className="px-3 py-2 fw-normal text-uppercase">
-                                {wholesaler.status}
+                                {wholesaler.status === 'blocked' ? 'Unapproved' : wholesaler.status}
                             </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-secondary">
+                            {wholesaler.created_at ? new Date(wholesaler.created_at).toLocaleDateString() : '-'}
                         </td>
                         <td className="px-4 py-3 text-end">
                             <div className="d-flex justify-content-end gap-2">
@@ -244,17 +231,6 @@ const Wholesalers = () => {
                                         onClick={() => handleViewDetails(wholesaler)}
                                     >
                                         <FileText size={16} />
-                                    </Button>
-                                </OverlayTrigger>
-                                <OverlayTrigger placement="top" overlay={<Tooltip>Logs</Tooltip>}>
-                                    <Button 
-                                        variant="light" 
-                                        className="btn-icon text-primary rounded-circle border-0 shadow-sm"
-                                        size="sm" 
-                                        style={{ width: '32px', height: '32px' }}
-                                        onClick={() => openLogs(wholesaler)}
-                                    >
-                                        <Eye size={16} />
                                     </Button>
                                 </OverlayTrigger>
 
@@ -286,12 +262,12 @@ const Wholesalers = () => {
                                 )}
                                 {wholesaler.status === 'approved' && (
                                     <Button variant="outline-dark" size="sm" onClick={() => handleStatusUpdate(wholesaler.id, 'blocked')}>
-                                        Block
+                                        Unapprove
                                     </Button>
                                 )}
                                 {wholesaler.status === 'blocked' && (
                                     <Button variant="outline-success" size="sm" onClick={() => handleStatusUpdate(wholesaler.id, 'approved')}>
-                                        Unblock
+                                        Approve
                                     </Button>
                                 )}
                             </div>
@@ -300,7 +276,7 @@ const Wholesalers = () => {
                     ))}
                     {wholesalers.length === 0 && (
                         <tr>
-                            <td colSpan="6" className="text-center py-5 text-muted">
+                            <td colSpan="7" className="text-center py-5 text-muted">
                                 <div className="d-flex flex-column align-items-center">
                                     <i className="bi bi-shop fs-1 mb-3 opacity-50"></i>
                                     <p className="mb-0">No wholesalers found.</p>
@@ -360,55 +336,6 @@ const Wholesalers = () => {
                 )}
             </Modal.Footer>
         </Modal>
-        {/* Logs Modal */}
-        <Modal show={showLogs} onHide={() => setShowLogs(false)} size="lg">
-            <Modal.Header closeButton>
-                <Modal.Title>Communication Logs {currentWholesaler ? `- ${currentWholesaler.business_name || currentWholesaler.email || currentWholesaler.phone}` : ''}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                {logsLoading ? (
-                    <div className="text-center py-4">
-                        <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="table-responsive">
-                        <Table hover className="mb-0">
-                            <thead className="bg-light text-uppercase small text-muted">
-                                <tr>
-                                    <th>Channel</th>
-                                    <th>Subject</th>
-                                    <th>Message</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.map(l => (
-                                    <tr key={l.id}>
-                                        <td>{l.channel}</td>
-                                        <td>{l.subject || '-'}</td>
-                                        <td style={{ maxWidth: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.message || '-'}</td>
-                                        <td><Badge bg={l.status === 'sent' ? 'success' : 'danger'}>{l.status}</Badge></td>
-                                        <td>{new Date(l.created_at).toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                                {logs.length === 0 && (
-                                    <tr>
-                                        <td colSpan="5" className="text-center py-3 text-muted">No logs</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </Table>
-                    </div>
-                )}
-            </Modal.Body>
-            <Modal.Footer>
-                <Button variant="secondary" onClick={() => setShowLogs(false)}>Close</Button>
-            </Modal.Footer>
-        </Modal>
-
       </Container>
     </Layout>
   );

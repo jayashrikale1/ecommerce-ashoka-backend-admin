@@ -318,22 +318,68 @@ const Orders = () => {
                         </td>
                     </tr>
                   ) : orders.length > 0 ? (
-                    orders.map((order, index) => (
+                    orders.map((order, index) => {
+                      const primaryCustomer =
+                        order.customer?.name || order.customer?.email || 'Customer';
+                      const secondaryCustomer =
+                        order.customer?.phone || order.customer?.email || '';
+
+                      const hasBusinessName =
+                        order.wholesaler?.business_name &&
+                        order.wholesaler.business_name.trim().length > 0;
+                      const primaryWholesaler = hasBusinessName
+                        ? order.wholesaler.business_name
+                        : (order.wholesaler?.name || order.wholesaler?.email || 'Wholesaler');
+
+                      let secondaryWholesaler = '';
+                      if (hasBusinessName) {
+                        secondaryWholesaler =
+                          order.wholesaler?.name ||
+                          order.wholesaler?.phone ||
+                          order.wholesaler?.email ||
+                          '';
+                      } else if (primaryWholesaler === order.wholesaler?.name) {
+                        secondaryWholesaler =
+                          order.wholesaler?.phone || order.wholesaler?.email || '';
+                      } else {
+                        secondaryWholesaler =
+                          order.wholesaler?.phone ||
+                          (order.wholesaler?.email !== primaryWholesaler
+                            ? order.wholesaler?.email
+                            : '') ||
+                          '';
+                      }
+
+                      const publicId = order.display_order_id || order.public_id || order.id;
+
+                      return (
                       <tr key={order.id}>
                         <td className="px-4 py-3 text-muted">{(page - 1) * 10 + index + 1}</td>
-                        <td className="px-4 py-3 fw-bold text-dark">#{order.id}</td>
+                        <td className="px-4 py-3 fw-bold text-dark">{publicId}</td>
                         <td className="px-4 py-3">
                           {key === 'customer' 
                             ? (
                                 <div className="d-flex flex-column">
-                                    <span className="fw-medium text-dark">{order.customer?.name || 'Unknown'}</span>
-                                    <small className="text-muted">{order.customer?.phone}</small>
+                                    <span className="fw-medium text-dark">
+                                      {primaryCustomer}
+                                    </span>
+                                    {secondaryCustomer && (
+                                      <small className="text-muted">
+                                        {secondaryCustomer}
+                                      </small>
+                                    )}
                                 </div>
                               )
                             : (
                                 <div className="d-flex flex-column">
-                                    <span className="fw-medium text-dark">{order.wholesaler?.business_name || 'Unknown'}</span>
-                                    <small className="text-muted">{order.wholesaler?.name}</small>
+                                    <span className="fw-medium text-dark">
+                                      {primaryWholesaler}
+                                    </span>
+                                    {secondaryWholesaler && (
+                                      <small className="text-muted">
+                                        {secondaryWholesaler}
+                                      </small>
+                                    )}
                                 </div>
                               )
                           }
@@ -392,7 +438,8 @@ const Orders = () => {
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan="8" className="text-center py-5 text-muted">
@@ -429,26 +476,22 @@ const Orders = () => {
         className="modal-with-sidebar"
       >
         <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold ps-2">Order #{selectedOrder?.id} Details</Modal.Title>
+          <Modal.Title className="fw-bold ps-2">
+            Order {(selectedOrder && (selectedOrder.display_order_id || selectedOrder.public_id)) || selectedOrder?.id} Details
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-4">
           {selectedOrder && (
             <div className="px-2">
               <Row className="mb-4">
                 <Col md={6}>
-                  <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Status Update</h6>
-                  <Form.Select 
-                    value={selectedOrder.status} 
-                    onChange={(e) => handleStatusUpdate(selectedOrder.id, e.target.value)}
-                    disabled={updatingStatus}
-                    className="mb-3 shadow-sm border-secondary-subtle py-2"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                  </Form.Select>
+                  <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Order Status</h6>
+                  <div className="p-3 bg-light rounded-3 border border-light-subtle d-flex align-items-center justify-content-between">
+                    <span className="text-muted small">Current Status</span>
+                    <Badge bg={getStatusBadge(selectedOrder.status)} className="px-3 py-2 rounded-pill text-uppercase">
+                      {selectedOrder.status}
+                    </Badge>
+                  </div>
                 </Col>
                 <Col md={6}>
                   <h6 className="mb-3 text-uppercase text-secondary small fw-bold">Payment Info</h6>

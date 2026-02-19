@@ -4,7 +4,7 @@ import api from '../services/api';
 import { toast } from 'react-toastify';
 import { Container, Card, Table, Button, Form, Row, Col, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import PaginationComponent from '../components/PaginationComponent';
-import { CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -122,20 +122,6 @@ const Reviews = () => {
                         </td>
                         <td className="px-4 py-3 text-end">
                           <div className="d-flex justify-content-end gap-2">
-                            {r.status !== 'approved' && (
-                              <OverlayTrigger placement="top" overlay={<Tooltip>Approve</Tooltip>}>
-                                <Button variant="outline-success" size="sm" onClick={() => updateStatus(r.id, 'approved')}>
-                                  <CheckCircle size={16} />
-                                </Button>
-                              </OverlayTrigger>
-                            )}
-                            {r.status !== 'rejected' && (
-                              <OverlayTrigger placement="top" overlay={<Tooltip>Reject</Tooltip>}>
-                                <Button variant="outline-danger" size="sm" onClick={() => updateStatus(r.id, 'rejected')}>
-                                  <XCircle size={16} />
-                                </Button>
-                              </OverlayTrigger>
-                            )}
                             <OverlayTrigger placement="top" overlay={<Tooltip>Delete</Tooltip>}>
                               <Button variant="outline-secondary" size="sm" onClick={() => deleteReview(r.id)}>
                                 <Trash2 size={16} />

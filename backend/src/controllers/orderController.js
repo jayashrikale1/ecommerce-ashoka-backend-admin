@@ -25,6 +25,23 @@ const createEmailTransport = () => {
   });
 };
 
+const buildPublicOrderId = (order) => {
+  if (!order || !order.id) return null;
+  const numericId = Number(order.id);
+  if (!Number.isFinite(numericId) || numericId <= 0) return String(order.id);
+  const padded = String(numericId).padStart(6, '0');
+
+  const hasWholesaler =
+    (order.wholesaler_id && Number(order.wholesaler_id) > 0) ||
+    (order.wholesaler && (order.wholesaler.id || order.wholesaler.business_name));
+
+  if (hasWholesaler) {
+    return `W${padded}`;
+  }
+
+  return `U${padded}`;
+};
+
 const sendOrderConfirmationEmail = async (orderId) => {
   try {
     const order = await Order.findByPk(orderId, {
@@ -538,7 +555,15 @@ exports.getMyOrders = async (req, res) => {
       ]
     });
 
-    res.status(200).json(orders);
+    const result = orders.map((o) => {
+      const plain = o.toJSON();
+      return {
+        ...plain,
+        display_order_id: buildPublicOrderId(plain),
+      };
+    });
+
+    res.status(200).json(result);
   } catch (error) {
     console.error('Get my orders error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -579,7 +604,11 @@ exports.getOrderDetails = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    res.status(200).json(order);
+    const plain = order.toJSON();
+    res.status(200).json({
+      ...plain,
+      display_order_id: buildPublicOrderId(plain),
+    });
   } catch (error) {
     console.error('Get order details error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -632,6 +661,7 @@ exports.getOrderInvoice = async (req, res) => {
     const discount = Number(order.discount_amount || 0);
     const total = Number(order.total_amount || 0);
     const dateStr = new Date(order.created_at).toLocaleString();
+    const publicId = buildPublicOrderId(order);
 
     const buildImageUrl = (imagePath) => {
       if (!imagePath) return null;
@@ -701,7 +731,7 @@ exports.getOrderInvoice = async (req, res) => {
           <div style="color:#777;font-size:12px;">Invoice</div>
         </div>
         <div class="meta">
-          <div>Invoice #: ${order.id}</div>
+          <div>Invoice #: ${publicId || order.id}</div>
           <div>Date: ${dateStr}</div>
           <div>Status: <span class="badge">${order.status}</span></div>
         </div>
@@ -871,8 +901,16 @@ exports.getAllOrders = async (req, res) => {
       ]
     });
 
+    const mappedOrders = rows.map((o) => {
+      const plain = o.toJSON();
+      return {
+        ...plain,
+        display_order_id: buildPublicOrderId(plain),
+      };
+    });
+
     res.status(200).json({
-      orders: rows,
+      orders: mappedOrders,
       totalPages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       totalOrders: count
@@ -888,7 +926,8 @@ exports.updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+    // Admin can move orders through workflow, but cannot cancel them from here.
+    if (!['pending', 'processing', 'shipped', 'delivered'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
