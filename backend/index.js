@@ -12,7 +12,15 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
     
-    // Sync models (non-destructive). Use migrations in production.
+    // Sync Category model specifically to add the new image column
+    try {
+      await Category.sync({ alter: true });
+      console.log('Category table synced.');
+    } catch (catError) {
+      console.error('Error syncing Category table:', catError.message);
+    }
+
+    // Sync other models (non-destructive, no alter) to avoid User table index issues
     await sequelize.sync();
     console.log('Database synced.');
 

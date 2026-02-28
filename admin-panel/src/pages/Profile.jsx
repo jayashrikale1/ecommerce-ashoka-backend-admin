@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { User, Mail, Phone, Save } from 'lucide-react';
 
 const Profile = () => {
-  const { user, login } = useAuth(); // login is used to update context if needed
+  const { user, login, updateUser } = useAuth(); // login is used to update context if needed
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -46,10 +46,9 @@ const Profile = () => {
       const response = await api.put('/auth/profile', formData);
       toast.success(response.data.message);
       
-      // Ideally update the auth context user object here if it stores name/email
-      // But for now, we just rely on page refresh or subsequent fetches
-      // If useAuth exposes a method to update user, we should use it.
-      // Based on typical implementation, we might need to reload or update state manually.
+      // Update local storage and context immediately
+      const updatedUser = { ...user, ...formData };
+      updateUser(updatedUser);
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update profile');

@@ -12,7 +12,7 @@ const Categories = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
-  const [formData, setFormData] = useState({ category_name: '', slug: '', status: true });
+  const [formData, setFormData] = useState({ category_name: '', slug: '', status: true, image: null });
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -57,7 +57,8 @@ const Categories = () => {
     setFormData({ 
         category_name: category.category_name,
         slug: category.slug || '',
-        status: category.status
+        status: category.status,
+        image: null
     });
     setShowModal(true);
   };
@@ -65,21 +66,29 @@ const Categories = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { 
-          category_name: formData.category_name,
-          slug: formData.slug,
-          status: formData.status
+      const data = new FormData();
+      data.append('category_name', formData.category_name);
+      data.append('slug', formData.slug);
+      data.append('status', formData.status);
+      if (formData.image) {
+        data.append('image', formData.image);
+      }
+
+      const config = {
+          headers: {
+              'Content-Type': 'multipart/form-data',
+          },
       };
 
       if (isEditing) {
-        await api.put(`/categories/${currentCategory.id}`, payload);
+        await api.put(`/categories/${currentCategory.id}`, data, config);
         toast.success('Category updated');
       } else {
-        await api.post('/categories', payload);
+        await api.post('/categories', data, config);
         toast.success('Category created');
       }
       setShowModal(false);
-      setFormData({ category_name: '', slug: '', status: true });
+      setFormData({ category_name: '', slug: '', status: true, image: null });
       setIsEditing(false);
       setCurrentCategory(null);
       fetchCategories(searchQuery, currentPage);
@@ -90,7 +99,7 @@ const Categories = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setFormData({ category_name: '', slug: '', status: true });
+    setFormData({ category_name: '', slug: '', status: true, image: null });
     setIsEditing(false);
     setCurrentCategory(null);
   };
@@ -104,7 +113,7 @@ const Categories = () => {
             variant="primary"
             onClick={() => {
                 setIsEditing(false);
-                setFormData({ category_name: '', slug: '', status: true });
+                setFormData({ category_name: '', slug: '', status: true, image: null });
                 setShowModal(true);
             }}
             className="d-flex align-items-center"
@@ -138,6 +147,7 @@ const Categories = () => {
                 <thead className="bg-light">
                   <tr>
                     <th className="px-4 py-3">Sr No.</th>
+                    <th className="px-4 py-3">Image</th>
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3">Slug</th>
                     <th className="px-4 py-3">Status</th>
@@ -148,6 +158,13 @@ const Categories = () => {
                   {categories.map((category, index) => (
                     <tr key={category.id}>
                       <td className="px-4 py-3 text-muted">{(currentPage - 1) * 10 + index + 1}</td>
+                      <td className="px-4 py-3">
+                        {category.image ? (
+                            <img src={`http://127.0.0.1:5000/uploads/${category.image}`} alt={category.category_name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} />
+                        ) : (
+                            <span className="text-muted small">No Image</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 fw-medium">{category.category_name}</td>
                       <td className="px-4 py-3 text-muted">{category.slug}</td>
                       <td className="px-4 py-3">
@@ -225,6 +242,14 @@ const Categories = () => {
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                   placeholder="Leave empty to auto-generate"
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Category Image</Form.Label>
+                <Form.Control
+                  type="file"
+                  onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
+                  accept="image/*"
                 />
               </Form.Group>
               <Form.Group className="mb-3">

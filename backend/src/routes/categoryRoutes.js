@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/categoryController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 /**
  * @swagger
@@ -53,7 +54,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
  *       500:
  *         description: Server error
  */
-router.post('/', authMiddleware, categoryController.createCategory);
+router.post('/', authMiddleware, upload.single('image'), categoryController.createCategory);
 
 /**
  * @swagger
@@ -128,7 +129,7 @@ router.get('/:id', categoryController.getCategoryById);
  *       500:
  *         description: Server error
  */
-router.put('/:id', authMiddleware, categoryController.updateCategory);
+router.put('/:id', authMiddleware, upload.single('image'), categoryController.updateCategory);
 
 /**
  * @swagger

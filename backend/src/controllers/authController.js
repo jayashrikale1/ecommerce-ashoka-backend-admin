@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { AdminUser } = require('../models');
+const sendEmail = require('../utils/emailService');
 
 exports.register = async (req, res) => {
   try {
@@ -124,16 +125,32 @@ exports.forgotPassword = async (req, res) => {
 
         await admin.save();
 
-        // In a production app, you would send this via email
-        // const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
-        
-        // For now, we return it in the response so the user can use it manually
-        res.json({ 
-            success: true, 
-            message: 'Password reset link generated. (Check response data)',
-            resetToken 
-        });
+        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+        // For admin panel running on different port/domain in dev, hardcode or use env
+        const frontendUrl = process.env.ADMIN_PANEL_URL || 'http://localhost:5173';
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
 
+        const message = `
+          <h1>You have requested a password reset</h1>
+          <p>Please go to this link to reset your password:</p>
+          <a href=${resetLink} clicktracking=off>${resetLink}</a>
+        `;
+
+        try {
+            await sendEmail({
+                email: admin.email,
+                subject: 'Password Reset Request',
+                html: message,
+            });
+
+            res.status(200).json({ success: true, message: 'Email sent' });
+        } catch (error) {
+            admin.reset_token = undefined;
+            admin.reset_token_expiry = undefined;
+            await admin.save();
+
+            return res.status(500).json({ message: 'Email could not be sent', error: error.message });
+        }
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

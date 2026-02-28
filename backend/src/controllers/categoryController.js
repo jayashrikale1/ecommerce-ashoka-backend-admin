@@ -1,9 +1,16 @@
 const { Category, Product } = require('../models');
 const { Op, fn, col } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 
 exports.createCategory = async (req, res) => {
   try {
     let { category_name, slug, status } = req.body;
+    let image = null;
+
+    if (req.file) {
+      image = req.file.filename;
+    }
     
     if (!category_name) {
         return res.status(400).json({ message: 'Category name is required' });
@@ -23,7 +30,8 @@ exports.createCategory = async (req, res) => {
     const category = await Category.create({
       category_name,
       slug,
-      status
+      status,
+      image
     });
 
     res.status(201).json(category);
@@ -95,6 +103,8 @@ exports.getCategoryById = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { category_name, slug, status } = req.body;
+    let image = req.file ? req.file.filename : undefined;
+
     const category = await Category.findByPk(req.params.id);
 
     if (!category) {
@@ -109,10 +119,19 @@ exports.updateCategory = async (req, res) => {
         }
     }
 
+    // If new image is uploaded, delete old image
+    if (image && category.image) {
+        const oldImagePath = path.join(__dirname, '../../uploads/', category.image);
+        if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+        }
+    }
+
     await category.update({
       category_name,
       slug,
-      status
+      status,
+      ...(image && { image })
     });
 
     res.json(category);
@@ -127,6 +146,13 @@ exports.deleteCategory = async (req, res) => {
 
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
+    }
+
+    if (category.image) {
+        const imagePath = path.join(__dirname, '../../uploads/', category.image);
+        if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+        }
     }
 
     await category.destroy();

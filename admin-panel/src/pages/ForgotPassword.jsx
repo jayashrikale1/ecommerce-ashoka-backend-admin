@@ -9,7 +9,7 @@ import logo from '../assets/logo.png';
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetLink, setResetLink] = useState(null);
+  const [emailSent, setEmailSent] = useState(false);
   const { forgotPassword } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -20,15 +20,13 @@ const ForgotPassword = () => {
     
     if (result.success) {
       toast.success(result.message);
-      if (result.resetToken) {
-        setResetLink(`${window.location.origin}/reset-password?token=${result.resetToken}`);
-      }
+      setEmailSent(true);
     } else {
       toast.error(result.message);
     }
   };
 
-  if (resetLink) {
+  if (emailSent) {
     return (
       <div className="forgot-password-page vh-100 overflow-y-auto position-relative">
         <div className="position-fixed top-0 start-0 w-100 h-100" 
@@ -53,11 +51,8 @@ const ForgotPassword = () => {
                   </div>
                   <h4 className="fw-bold text-dark mb-3">Check your Email</h4>
                   <p className="text-muted small mb-4">
-                    (Mock Mode) Since email service is not configured, here is your reset link:
+                    We have sent a password reset link to your email address. Please check your inbox (and spam folder).
                   </p>
-                  <div className="alert alert-secondary text-break user-select-all" role="alert">
-                    <a href={resetLink} className="text-decoration-none">{resetLink}</a>
-                  </div>
                   <Link to="/login" className="btn btn-primary w-100 py-2 mt-3">Back to Login</Link>
                 </Card.Body>
               </Card>
